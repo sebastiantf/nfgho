@@ -17,6 +17,7 @@ contract NFGhoTest is Test {
     ERC721Mock public bayc = new ERC721Mock();
     GhoToken public ghoToken;
     MockV3Aggregator public mockV3AggregatorBayc = new MockV3Aggregator();
+    MockV3Aggregator public mockV3AggregatorEthUsd = new MockV3Aggregator();
 
     address alice = makeAddr("alice");
 
@@ -29,8 +30,9 @@ contract NFGhoTest is Test {
         _supportedCollaterals[0] = address(bayc);
         _priceFeeds[0] = address(mockV3AggregatorBayc);
         mockV3AggregatorBayc.setPrice(25 ether); // set floor price of 25 ETH
+        mockV3AggregatorEthUsd.setPrice(2000e8); // set ETH/USD price of 2000 USD in 8 decimals
 
-        nfgho = new NFGho(ghoToken, _supportedCollaterals, _priceFeeds);
+        nfgho = new NFGho(ghoToken, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
 
         vm.startPrank(alice);
         IGhoToken.Facilitator memory nfghoFacilitator = IGhoToken.Facilitator(2 ether, 0, "NFGho");
@@ -45,9 +47,12 @@ contract NFGhoTest is Test {
         assertEq(nfgho.supportedCollaterals(0), address(bayc));
         assertTrue(nfgho.isCollateralSupported(address(bayc)));
         assertEq(nfgho.priceFeeds(address(bayc)), address(mockV3AggregatorBayc));
+        assertEq(nfgho.ethUsdPriceFeed(), address(mockV3AggregatorEthUsd));
 
         (, int256 nftFloorPrice,,,) = mockV3AggregatorBayc.latestRoundData();
         assertEq(nftFloorPrice, 25 ether);
+        (, int256 price,,,) = mockV3AggregatorEthUsd.latestRoundData();
+        assertEq(price, 2000e8);
     }
 
     /* depositCollateral() */
@@ -105,5 +110,10 @@ contract NFGhoTest is Test {
     /* nftFloorPrice() */
     function test_nftFloorPrice() public {
         assertEq(nfgho.nftFloorPrice(address(bayc)), 25 ether);
+    }
+
+    /* ethUsd() */
+    function test_ethUsd() public {
+        assertEq(nfgho.ethUsd(), 2000e8);
     }
 }

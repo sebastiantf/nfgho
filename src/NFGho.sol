@@ -17,6 +17,7 @@ contract NFGho is ERC721Holder {
     address[] public supportedCollaterals;
     mapping(address collateral => bool isSupported) public isCollateralSupported;
     mapping(address collateral => address priceFeed) public priceFeeds;
+    address public ethUsdPriceFeed; // TODO: can be stored in priceFeeds mapping
     mapping(address user => mapping(address collateralNFT => uint256 tokenId)) internal collaterals;
     mapping(address user => uint256 ghoMinted) internal ghoMinted;
 
@@ -27,9 +28,15 @@ contract NFGho is ERC721Holder {
         _;
     }
 
-    constructor(GhoToken _ghoToken, address[] memory _supportedCollaterals, address[] memory _priceFeeds) {
+    constructor(
+        GhoToken _ghoToken,
+        address[] memory _supportedCollaterals,
+        address[] memory _priceFeeds,
+        address _ethUsdPriceFeed
+    ) {
         ghoToken = _ghoToken;
         supportedCollaterals = _supportedCollaterals;
+        ethUsdPriceFeed = _ethUsdPriceFeed;
 
         for (uint256 i = 0; i < _supportedCollaterals.length; i++) {
             isCollateralSupported[_supportedCollaterals[i]] = true;
@@ -55,6 +62,13 @@ contract NFGho is ERC721Holder {
         // TODO: use decimals() instead of assuming 18
         (, int256 nftFloorPrice,,,) = priceFeed.latestRoundData();
         return uint256(nftFloorPrice);
+    }
+
+    function ethUsd() public view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(ethUsdPriceFeed);
+        (, int256 price,,,) = priceFeed.latestRoundData();
+        // * Chainlink ETH/USD feed is in USD with 8 decimals
+        return uint256(price);
     }
 
     function collateralTokenIdOf(address _user, address _collateral) public view returns (uint256) {
