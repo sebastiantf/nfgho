@@ -6,6 +6,7 @@ import {NFGho} from "../src/NFGho.sol";
 import {ERC721Mock} from "./mocks/ERC721Mock.sol";
 import {DeployGHO} from "../script/DeployGHO.s.sol";
 import {GhoToken} from "gho-core/src/contracts/gho/GhoToken.sol";
+import {IGhoToken} from "gho-core/src/contracts/gho/interfaces/IGhoToken.sol";
 
 contract NFGhoTest is Test {
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
@@ -20,6 +21,11 @@ contract NFGhoTest is Test {
         DeployGHO deployer = new DeployGHO();
         (ghoToken) = deployer.run();
         nfgho = new NFGho(ghoToken);
+
+        vm.startPrank(alice);
+        IGhoToken.Facilitator memory nfghoFacilitator = IGhoToken.Facilitator(2 ether, 0, "NFGho");
+        ghoToken.addFacilitator(address(nfgho), nfghoFacilitator);
+        vm.stopPrank();
 
         bayc.mint(alice);
     }
