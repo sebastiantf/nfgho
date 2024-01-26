@@ -1,17 +1,14 @@
-## Foundry
+## NFGho
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+**NFGho is a [Facilitator](https://docs.gho.xyz/concepts/how-gho-works/gho-facilitators) for [GHO](https://docs.gho.xyz/)**
 
-Foundry consists of:
+NFGho lets anyone use their idle NFTs to mint GHO tokens. Additionally, if time permits GHO tokens can be directly swapped for USDC/USDT via the [GHO Stability Module (GSM)](https://governance.aave.com/t/gho-stability-module-update/14442), which can then be supplied to [Aave](https://aave.com/) to generate yield.
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Thus NFGho lets you utilize your idle NFTs to generate liquidity to generate yield or use elsewhere in DeFi.
 
-## Documentation
+NFGho is an evolution of a previous project of mine called [YieldNFT](https://bit.ly/YieldNFT) and a twist on CDP-based stablecoin, although the GHO is the stablecoin here.
 
-https://book.getfoundry.sh/
+NFGho will use Chainlink's [NFT Floor Price Feeds](https://docs.chain.link/data-feeds/nft-floor-price) to determine the value of the NFTs being used as collateral.
 
 ## Usage
 
@@ -27,40 +24,9 @@ $ forge build
 $ forge test
 ```
 
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
 ### Deploy
 
 ```shell
 $ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
