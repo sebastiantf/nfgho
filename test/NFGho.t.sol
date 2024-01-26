@@ -4,19 +4,28 @@ pragma solidity 0.8.20;
 import {Test, console} from "forge-std/Test.sol";
 import {NFGho} from "../src/NFGho.sol";
 import {ERC721Mock} from "./mocks/ERC721Mock.sol";
+import {DeployGHO} from "../script/DeployGHO.s.sol";
+import {GhoToken} from "gho-core/src/contracts/gho/GhoToken.sol";
 
 contract NFGhoTest is Test {
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
 
     NFGho public nfgho;
     ERC721Mock public bayc = new ERC721Mock();
+    GhoToken public ghoToken;
 
     address alice = makeAddr("alice");
 
     function setUp() public {
-        nfgho = new NFGho();
+        DeployGHO deployer = new DeployGHO();
+        (ghoToken) = deployer.run();
+        nfgho = new NFGho(ghoToken);
 
         bayc.mint(alice);
+    }
+
+    function test_initialState() public {
+        assertEq(address(nfgho.ghoToken()), address(ghoToken));
     }
 
     function test_depositCollateral() public {
