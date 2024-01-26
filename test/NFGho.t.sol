@@ -7,6 +7,7 @@ import {ERC721Mock} from "./mocks/ERC721Mock.sol";
 import {DeployGHO} from "../script/DeployGHO.s.sol";
 import {GhoToken} from "gho-core/src/contracts/gho/GhoToken.sol";
 import {IGhoToken} from "gho-core/src/contracts/gho/interfaces/IGhoToken.sol";
+import {MockV3Aggregator} from "./mocks/MockV3Aggregator.sol";
 
 contract NFGhoTest is Test {
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
@@ -15,9 +16,9 @@ contract NFGhoTest is Test {
     NFGho public nfgho;
     ERC721Mock public bayc = new ERC721Mock();
     GhoToken public ghoToken;
+    MockV3Aggregator public mockV3AggregatorBayc = new MockV3Aggregator();
 
     address alice = makeAddr("alice");
-    address mockV3Aggregator = makeAddr("mockV3Aggregator");
 
     function setUp() public {
         DeployGHO deployer = new DeployGHO();
@@ -26,7 +27,8 @@ contract NFGhoTest is Test {
         address[] memory _supportedCollaterals = new address[](1);
         address[] memory _priceFeeds = new address[](1);
         _supportedCollaterals[0] = address(bayc);
-        _priceFeeds[0] = mockV3Aggregator;
+        _priceFeeds[0] = address(mockV3AggregatorBayc);
+        mockV3AggregatorBayc.setPrice(25 ether); // set floor price of 25 ETH
 
         nfgho = new NFGho(ghoToken, _supportedCollaterals, _priceFeeds);
 
@@ -42,7 +44,10 @@ contract NFGhoTest is Test {
         assertEq(address(nfgho.ghoToken()), address(ghoToken));
         assertEq(nfgho.supportedCollaterals(0), address(bayc));
         assertTrue(nfgho.isCollateralSupported(address(bayc)));
-        assertEq(nfgho.priceFeeds(address(bayc)), mockV3Aggregator);
+        assertEq(nfgho.priceFeeds(address(bayc)), address(mockV3AggregatorBayc));
+
+        (, int256 nftFloorPrice,,,) = mockV3AggregatorBayc.latestRoundData();
+        assertEq(nftFloorPrice, 25 ether);
     }
 
     /* depositCollateral() */
@@ -95,5 +100,10 @@ contract NFGhoTest is Test {
         assertEq(ghoToken.balanceOf(alice), ghoAmount);
 
         vm.stopPrank();
+    }
+
+    /* nftFloorPrice() */
+    function test_nftFloorPrice() public {
+        assertEq(nfgho.nftFloorPrice(address(bayc)), 25 ether);
     }
 }

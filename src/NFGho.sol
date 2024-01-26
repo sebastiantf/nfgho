@@ -4,6 +4,7 @@ pragma solidity 0.8.20;
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {GhoToken} from "gho-core/src/contracts/gho/GhoToken.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract NFGho is ERC721Holder {
     error UnsupportedCollateral();
@@ -46,6 +47,14 @@ contract NFGho is ERC721Holder {
         ghoMinted[msg.sender] += _amount;
         ghoToken.mint(msg.sender, _amount);
         emit GhoMinted(msg.sender, _amount);
+    }
+
+    function nftFloorPrice(address _nftAddress) public view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(priceFeeds[_nftAddress]);
+        // * All Chainlink NFT Floor Price feed is in ETH with 18 decimals
+        // TODO: use decimals() instead of assuming 18
+        (, int256 nftFloorPrice,,,) = priceFeed.latestRoundData();
+        return uint256(nftFloorPrice);
     }
 
     function collateralTokenIdOf(address _user, address _collateral) public view returns (uint256) {
