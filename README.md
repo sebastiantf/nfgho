@@ -13,6 +13,7 @@ NFGho will use Chainlink's [NFT Floor Price Feeds](https://docs.chain.link/data-
 ### Potential Challenges
 
 - Liquidation of NFTs might require liquidating the entire position, by burning the total amount of debt and liquidator will receive the entire NFT. This is because NFTs are indivisible. We could look into fractionalizing NFTs to solve this problem. NFTfi, NFTX, Fractional, etc. can be explored
+- Different tokenIds of the same collection is considered fungible for now, since we're using floor price to calculate value. This may not be the best UX, but it's a start
 
 ## Usage
 
