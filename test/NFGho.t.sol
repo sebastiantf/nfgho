@@ -13,6 +13,7 @@ contract NFGhoTest is Test {
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event CollateralRedeemed(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event GhoMinted(address indexed user, uint256 amount);
+    event GhoBurned(address indexed user, uint256 amount);
 
     NFGho public nfgho;
     ERC721Mock public bayc = new ERC721Mock();
@@ -273,6 +274,36 @@ contract NFGhoTest is Test {
         // redeem collateral
         vm.expectRevert(NFGho.InsufficientHealthFactor.selector);
         nfgho.redeemCollateral(address(bayc), collateralTokenId);
+
+        vm.stopPrank();
+    }
+
+    /* burnGho() */
+    function test_burnGho() public {
+        vm.startPrank(alice);
+
+        // deposit collateral
+        uint256 collateralTokenId = 1;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+        // mint 80% of collateral value in GHO: 50,000 USD * 80% = 40,000 USD
+        nfgho.mintGho(40_000e18);
+
+        // burn GHO
+        uint256 ghoAmount = 20_000 ether;
+        ghoToken.approve(address(nfgho), ghoAmount);
+        vm.expectEmit(true, true, true, true);
+        emit GhoBurned(alice, ghoAmount);
+        nfgho.burnGho(ghoAmount);
+
+        // final balances
+        assertEq(nfgho.ghoMintedOf(alice), 20_000e18);
+        assertEq(ghoToken.balanceOf(alice), 20_000e18);
+
+        // health factor
+        // (((totalCollateralValueInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION) * 1e18) / totalGhoMinted;
+        // (((50_000 * 80) / 100) * 1e18) / 20_000 = 2e18
+        assertEq(nfgho.healthFactor(alice), 2e18);
 
         vm.stopPrank();
     }

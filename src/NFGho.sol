@@ -14,6 +14,7 @@ contract NFGho is ERC721Holder {
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event CollateralRedeemed(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event GhoMinted(address indexed user, uint256 amount);
+    event GhoBurned(address indexed user, uint256 amount);
 
     struct Collateral {
         mapping(uint256 tokenId => bool hasDeposited) hasDepositedTokenId;
@@ -90,10 +91,17 @@ contract NFGho is ERC721Holder {
         emit CollateralRedeemed(msg.sender, _collateral, _tokenId);
     }
 
+    function burnGho(uint256 _amount) external {
+        ghoMinted[msg.sender] -= _amount;
+        ghoToken.transferFrom(msg.sender, address(this), _amount);
+        ghoToken.burn(_amount);
+        emit GhoBurned(msg.sender, _amount);
+    }
+
     function healthFactor(address user) public view returns (uint256) {
         uint256 totalGhoMinted = ghoMintedOf(user);
         if (totalGhoMinted == 0) return type(uint256).max;
-        
+
         uint256 _totalCollateralValueInUSD = totalCollateralValueInUSD(user);
         // health factor = (total collateral value in USD * liquidation threshold) / (total Gho value in USD)
         // adding 1e18 to keep precision after division with 1e18
