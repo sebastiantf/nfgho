@@ -9,8 +9,10 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 contract NFGho is ERC721Holder {
     error UnsupportedCollateral();
     error InsufficientHealthFactor();
+    error InvalidOwner();
 
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
+    event CollateralRedeemed(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event GhoMinted(address indexed user, uint256 amount);
 
     struct Collateral {
@@ -35,6 +37,13 @@ contract NFGho is ERC721Holder {
     modifier onlySupportedCollateral(address _collateral) {
         if (!isCollateralSupported[_collateral]) {
             revert UnsupportedCollateral();
+        }
+        _;
+    }
+
+    modifier onlyDepositedCollateralToken(address _collateral, uint256 _tokenId) {
+        if (!collateralNFTs[msg.sender][_collateral].hasDepositedTokenId[_tokenId]) {
+            revert InvalidOwner();
         }
         _;
     }
@@ -69,9 +78,23 @@ contract NFGho is ERC721Holder {
         emit GhoMinted(msg.sender, _amount);
     }
 
+    function redeemCollateral(address _collateral, uint256 _tokenId)
+        external
+        onlySupportedCollateral(_collateral)
+        onlyDepositedCollateralToken(_collateral, _tokenId)
+    {
+        collateralNFTs[msg.sender][_collateral].hasDepositedTokenId[_tokenId] = false;
+        collateralNFTs[msg.sender][_collateral].tokensCount--;
+        if (healthFactor(msg.sender) < 1e18) revert InsufficientHealthFactor();
+        IERC721(_collateral).safeTransferFrom(address(this), msg.sender, _tokenId);
+        emit CollateralRedeemed(msg.sender, _collateral, _tokenId);
+    }
+
     function healthFactor(address user) public view returns (uint256) {
-        uint256 _totalCollateralValueInUSD = totalCollateralValueInUSD(user);
         uint256 totalGhoMinted = ghoMintedOf(user);
+        if (totalGhoMinted == 0) return type(uint256).max;
+        
+        uint256 _totalCollateralValueInUSD = totalCollateralValueInUSD(user);
         // health factor = (total collateral value in USD * liquidation threshold) / (total Gho value in USD)
         // adding 1e18 to keep precision after division with 1e18
         return (((_totalCollateralValueInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION) * 1e18) / totalGhoMinted;

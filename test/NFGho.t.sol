@@ -11,6 +11,7 @@ import {MockV3Aggregator} from "./mocks/MockV3Aggregator.sol";
 
 contract NFGhoTest is Test {
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
+    event CollateralRedeemed(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event GhoMinted(address indexed user, uint256 amount);
 
     NFGho public nfgho;
@@ -218,6 +219,60 @@ contract NFGhoTest is Test {
         // (((totalCollateralValueInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION) * 1e18) / totalGhoMinted;
         // (((100_000 * 80) / 100) * 1e18) / 60_000 = 1.333333333333333333e18
         assertEq(nfgho.healthFactor(alice), 1.333333333333333333e18);
+
+        vm.stopPrank();
+    }
+
+    /* redeemCollateral() */
+    function test_redeemCollateral() public {
+        vm.startPrank(alice);
+
+        // deposit collateral
+        uint256 collateralTokenId = 1;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+
+        // redeem collateral
+        vm.expectEmit(true, true, true, true);
+        emit CollateralRedeemed(alice, address(bayc), collateralTokenId);
+        nfgho.redeemCollateral(address(bayc), collateralTokenId);
+
+        // final balances
+        assertEq(nfgho.hasDepositedCollateralToken(alice, address(bayc), 1), false);
+        assertEq(nfgho.collateralDepositedCount(alice, address(bayc)), 0);
+        assertEq(bayc.balanceOf(alice), 1);
+        assertEq(bayc.balanceOf(address(nfgho)), 0);
+
+        vm.stopPrank();
+    }
+
+    function test_redeemCollateralRevertsIfUnsupported() public {
+        ERC721Mock unsupported = new ERC721Mock();
+        uint256 collateralTokenId = 1;
+        vm.expectRevert(NFGho.UnsupportedCollateral.selector);
+        nfgho.redeemCollateral(address(unsupported), collateralTokenId);
+    }
+
+    function test_redeemCollateralRevertsIfNotDeposited() public {
+        uint256 collateralTokenId = 1;
+        vm.expectRevert(NFGho.InvalidOwner.selector);
+        nfgho.redeemCollateral(address(bayc), collateralTokenId);
+    }
+
+    function test_redeemCollateralRevertsIfInsufficientHealthFactor() public {
+        vm.startPrank(alice);
+
+        // deposit collateral
+        uint256 collateralTokenId = 1;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+        // mint 80% of collateral value in GHO: 50,000 USD * 80% = 40,000 USD
+        nfgho.mintGho(40_000e18);
+        assertEq(nfgho.healthFactor(alice), 1e18);
+
+        // redeem collateral
+        vm.expectRevert(NFGho.InsufficientHealthFactor.selector);
+        nfgho.redeemCollateral(address(bayc), collateralTokenId);
 
         vm.stopPrank();
     }
