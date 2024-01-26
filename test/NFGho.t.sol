@@ -10,6 +10,7 @@ import {IGhoToken} from "gho-core/src/contracts/gho/interfaces/IGhoToken.sol";
 
 contract NFGhoTest is Test {
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
+    event GhoMinted(address indexed user, uint256 amount);
 
     NFGho public nfgho;
     ERC721Mock public bayc = new ERC721Mock();
@@ -34,6 +35,7 @@ contract NFGhoTest is Test {
         assertEq(address(nfgho.ghoToken()), address(ghoToken));
     }
 
+    /* depositCollateral() */
     function test_depositCollateral() public {
         vm.startPrank(alice);
 
@@ -53,6 +55,27 @@ contract NFGhoTest is Test {
         assertEq(nfgho.collateralTokenIdOf(alice, address(bayc)), collateralTokenId);
         assertEq(bayc.balanceOf(alice), 0);
         assertEq(bayc.balanceOf(address(nfgho)), 1);
+
+        vm.stopPrank();
+    }
+
+    /* mintGho() */
+    function test_mintGho() public {
+        vm.startPrank(alice);
+
+        // initial balances
+        assertEq(nfgho.ghoMintedOf(alice), 0);
+        assertEq(ghoToken.balanceOf(alice), 0);
+
+        // mint gho
+        uint256 ghoAmount = 1 ether;
+        vm.expectEmit(true, true, true, true);
+        emit GhoMinted(alice, ghoAmount);
+        nfgho.mintGho(ghoAmount);
+
+        // final balances
+        assertEq(nfgho.ghoMintedOf(alice), ghoAmount);
+        assertEq(ghoToken.balanceOf(alice), ghoAmount);
 
         vm.stopPrank();
     }
