@@ -110,15 +110,31 @@ contract NFGhoTest is Test {
     /* nftFloorPrice() */
     function test_nftFloorPrice() public {
         assertEq(nfgho.nftFloorPrice(address(bayc)), 25 ether);
+
+        // update floor price
+        mockV3AggregatorBayc.setPrice(30 ether);
+        assertEq(nfgho.nftFloorPrice(address(bayc)), 30 ether);
     }
 
     /* ethUsd() */
     function test_ethUsd() public {
         assertEq(nfgho.ethUsd(), 2000e8);
+
+        // update ETH/USD price
+        mockV3AggregatorEthUsd.setPrice(3000e8);
+        assertEq(nfgho.ethUsd(), 3000e8);
     }
 
     /* nftFloorValueInUsd() */
     function test_nftFloorValueInUsd() public {
         assertEq(nfgho.nftFloorValueInUsd(address(bayc)), 50_000e18); // 25 ETH * 2000 USD / ETH = 50,000 USD
+
+        // update floor price
+        mockV3AggregatorBayc.setPrice(30 ether);
+        assertEq(nfgho.nftFloorValueInUsd(address(bayc)), 60_000e18); // 30 ETH * 2000 USD / ETH = 60,000 USD
+
+        // update ETH/USD price
+        mockV3AggregatorEthUsd.setPrice(3000e8);
+        assertEq(nfgho.nftFloorValueInUsd(address(bayc)), 90_000e18); // 30 ETH * 3000 USD / ETH = 90,000 USD
     }
 }
