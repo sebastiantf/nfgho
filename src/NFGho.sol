@@ -8,6 +8,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 
 contract NFGho is ERC721Holder {
     error UnsupportedCollateral();
+    error InsufficientHealthFactor();
 
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event GhoMinted(address indexed user, uint256 amount);
@@ -63,6 +64,7 @@ contract NFGho is ERC721Holder {
 
     function mintGho(uint256 _amount) external {
         ghoMinted[msg.sender] += _amount;
+        if (healthFactor(msg.sender) < 1e18) revert InsufficientHealthFactor();
         ghoToken.mint(msg.sender, _amount);
         emit GhoMinted(msg.sender, _amount);
     }
