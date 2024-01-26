@@ -17,6 +17,11 @@ contract NFGho is ERC721Holder {
         uint256 tokensCount; // each tokenId of a collection is considered fungible for now, since we're using floor price to calculate value
     }
 
+    // Liquidation threshold is 80%
+    // If loan value raises above 80% of collateral value, the loan can be liquidated
+    uint256 public constant LIQUIDATION_THRESHOLD = 80;
+    uint256 public constant LIQUIDATION_PRECISION = 100;
+
     GhoToken public ghoToken;
     address[] public supportedCollaterals;
     mapping(address collateral => bool isSupported) public isCollateralSupported;
@@ -60,6 +65,14 @@ contract NFGho is ERC721Holder {
         ghoMinted[msg.sender] += _amount;
         ghoToken.mint(msg.sender, _amount);
         emit GhoMinted(msg.sender, _amount);
+    }
+
+    function healthFactor(address user) public view returns (uint256) {
+        uint256 _totalCollateralValueInUSD = totalCollateralValueInUSD(user);
+        uint256 totalGhoMinted = ghoMintedOf(user);
+        // health factor = (total collateral value in USD * liquidation threshold) / (total Gho value in USD)
+        // adding 1e18 to keep precision after division with 1e18
+        return (((_totalCollateralValueInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION) * 1e18) / totalGhoMinted;
     }
 
     function totalCollateralValueInUSD(address user) public view returns (uint256) {

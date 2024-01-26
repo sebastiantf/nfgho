@@ -35,7 +35,7 @@ contract NFGhoTest is Test {
         nfgho = new NFGho(ghoToken, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
 
         vm.startPrank(alice);
-        IGhoToken.Facilitator memory nfghoFacilitator = IGhoToken.Facilitator(2 ether, 0, "NFGho");
+        IGhoToken.Facilitator memory nfghoFacilitator = IGhoToken.Facilitator(100_000 ether, 0, "NFGho");
         ghoToken.addFacilitator(address(nfgho), nfghoFacilitator);
         vm.stopPrank();
 
@@ -48,6 +48,8 @@ contract NFGhoTest is Test {
         assertTrue(nfgho.isCollateralSupported(address(bayc)));
         assertEq(nfgho.priceFeeds(address(bayc)), address(mockV3AggregatorBayc));
         assertEq(nfgho.ethUsdPriceFeed(), address(mockV3AggregatorEthUsd));
+        assertEq(nfgho.LIQUIDATION_THRESHOLD(), 80);
+        assertEq(nfgho.LIQUIDATION_PRECISION(), 100);
 
         (, int256 nftFloorPrice,,,) = mockV3AggregatorBayc.latestRoundData();
         assertEq(nftFloorPrice, 25 ether);
@@ -162,6 +164,36 @@ contract NFGhoTest is Test {
         nfgho.depositCollateral(address(bayc), collateralTokenId);
 
         assertEq(nfgho.totalCollateralValueInUSD(alice), 100_000e18); // 50,000 USD + 50,000 USD
+
+        vm.stopPrank();
+    }
+
+    /* healthFactor() */
+    function test_healthFactor() public {
+        vm.startPrank(alice);
+
+        // deposit collateral
+        uint256 collateralTokenId = 1;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+        // mint 80% of collateral value in GHO: 50,000 USD * 80% = 40,000 USD
+        nfgho.mintGho(40_000e18);
+
+        // (((totalCollateralValueInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION) * 1e18) / totalGhoMinted;
+        // (((50_000 * 80) / 100) * 1e18) / 40_000 = 1e18
+        assertEq(nfgho.healthFactor(alice), 1e18);
+
+        // deposit one more bayc
+        bayc.mint(alice);
+        collateralTokenId = 2;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+        // mint 20_000 USD worth of GHO
+        nfgho.mintGho(20_000e18);
+
+        // (((totalCollateralValueInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION) * 1e18) / totalGhoMinted;
+        // (((100_000 * 80) / 100) * 1e18) / 60_000 = 1.333333333333333333e18
+        assertEq(nfgho.healthFactor(alice), 1.333333333333333333e18);
 
         vm.stopPrank();
     }
