@@ -61,6 +61,7 @@ contract NFGhoTest is Test {
 
         // initial balances
         assertEq(nfgho.hasDepositedCollateral(alice, address(bayc), 1), false);
+        assertEq(nfgho.collateralNFTCount(alice, address(bayc)), 0);
         assertEq(bayc.balanceOf(alice), 1);
         assertEq(bayc.balanceOf(address(nfgho)), 0);
 
@@ -73,6 +74,7 @@ contract NFGhoTest is Test {
 
         // final balances
         assertEq(nfgho.hasDepositedCollateral(alice, address(bayc), collateralTokenId), true);
+        assertEq(nfgho.collateralNFTCount(alice, address(bayc)), 1);
         assertEq(bayc.balanceOf(alice), 0);
         assertEq(bayc.balanceOf(address(nfgho)), 1);
 

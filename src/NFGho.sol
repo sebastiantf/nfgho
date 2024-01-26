@@ -17,9 +17,11 @@ contract NFGho is ERC721Holder {
     mapping(address collateral => bool isSupported) public isCollateralSupported;
     mapping(address collateral => address priceFeed) public priceFeeds;
     address public ethUsdPriceFeed; // TODO: can be stored in priceFeeds mapping
-    // TODO: allow/disallow multiple tokenIds of same collection
     mapping(address user => mapping(address collateralNFT => mapping(uint256 tokenId => bool hasDeposited))) public
         hasDepositedCollateral;
+    // each tokenId of a collection is considered fungible for now, 
+    // since we're using floor price to calculate value
+    mapping(address user => mapping(address collateralNFT => uint256 count)) public collateralNFTCount;
     mapping(address user => uint256 ghoMinted) internal ghoMinted;
 
     modifier onlySupportedCollateral(address _collateral) {
@@ -47,6 +49,7 @@ contract NFGho is ERC721Holder {
 
     function depositCollateral(address _collateral, uint256 _tokenId) external onlySupportedCollateral(_collateral) {
         hasDepositedCollateral[msg.sender][_collateral][_tokenId] = true;
+        collateralNFTCount[msg.sender][_collateral]++;
         IERC721(_collateral).safeTransferFrom(msg.sender, address(this), _tokenId);
         emit CollateralDeposited(msg.sender, _collateral, _tokenId);
     }
