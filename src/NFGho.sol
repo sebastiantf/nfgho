@@ -18,8 +18,8 @@ contract NFGho is ERC721Holder {
     mapping(address collateral => address priceFeed) public priceFeeds;
     address public ethUsdPriceFeed; // TODO: can be stored in priceFeeds mapping
     // TODO: allow/disallow multiple tokenIds of same collection
-    // TODO: bug: tokenId 0 would be considered as collateral for all collections for every user
-    mapping(address user => mapping(address collateralNFT => uint256 tokenId)) internal collaterals;
+    mapping(address user => mapping(address collateralNFT => mapping(uint256 tokenId => bool hasDeposited))) public
+        hasDepositedCollateral;
     mapping(address user => uint256 ghoMinted) internal ghoMinted;
 
     modifier onlySupportedCollateral(address _collateral) {
@@ -46,7 +46,7 @@ contract NFGho is ERC721Holder {
     }
 
     function depositCollateral(address _collateral, uint256 _tokenId) external onlySupportedCollateral(_collateral) {
-        collaterals[msg.sender][_collateral] = _tokenId;
+        hasDepositedCollateral[msg.sender][_collateral][_tokenId] = true;
         IERC721(_collateral).safeTransferFrom(msg.sender, address(this), _tokenId);
         emit CollateralDeposited(msg.sender, _collateral, _tokenId);
     }
@@ -80,10 +80,6 @@ contract NFGho is ERC721Holder {
         (, int256 price,,,) = priceFeed.latestRoundData();
         // * Chainlink ETH/USD feed is in USD with 8 decimals
         return uint256(price);
-    }
-
-    function collateralTokenIdOf(address _user, address _collateral) public view returns (uint256) {
-        return collaterals[_user][_collateral];
     }
 
     function ghoMintedOf(address _user) public view returns (uint256) {

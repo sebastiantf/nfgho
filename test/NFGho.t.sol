@@ -60,7 +60,7 @@ contract NFGhoTest is Test {
         vm.startPrank(alice);
 
         // initial balances
-        assertEq(nfgho.collateralTokenIdOf(alice, address(bayc)), 0);
+        assertEq(nfgho.hasDepositedCollateral(alice, address(bayc), 1), false);
         assertEq(bayc.balanceOf(alice), 1);
         assertEq(bayc.balanceOf(address(nfgho)), 0);
 
@@ -72,7 +72,7 @@ contract NFGhoTest is Test {
         nfgho.depositCollateral(address(bayc), collateralTokenId);
 
         // final balances
-        assertEq(nfgho.collateralTokenIdOf(alice, address(bayc)), collateralTokenId);
+        assertEq(nfgho.hasDepositedCollateral(alice, address(bayc), collateralTokenId), true);
         assertEq(bayc.balanceOf(alice), 0);
         assertEq(bayc.balanceOf(address(nfgho)), 1);
 
