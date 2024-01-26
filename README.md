@@ -10,6 +10,10 @@ NFGho is an evolution of a previous project of mine called [YieldNFT](https://bi
 
 NFGho will use Chainlink's [NFT Floor Price Feeds](https://docs.chain.link/data-feeds/nft-floor-price) to determine the value of the NFTs being used as collateral.
 
+### Potential Challenges
+
+- Liquidation of NFTs might require liquidating the entire position, by burning the total amount of debt and liquidator will receive the entire NFT. This is because NFTs are indivisible. We could look into fractionalizing NFTs to solve this problem. NFTfi, NFTX, Fractional, etc. can be explored
+
 ## Usage
 
 ### Build
