@@ -70,8 +70,8 @@ contract NFGho is ERC721Holder {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(priceFeeds[_nftAddress]);
         // * All Chainlink NFT Floor Price feed is in ETH with 18 decimals
         // TODO: use decimals() instead of assuming 18
-        (, int256 nftFloorPrice,,,) = priceFeed.latestRoundData();
-        return uint256(nftFloorPrice);
+        (, int256 _nftFloorPrice,,,) = priceFeed.latestRoundData();
+        return uint256(_nftFloorPrice);
     }
 
     function ethUsd() public view returns (uint256) {
