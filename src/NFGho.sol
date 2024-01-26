@@ -12,16 +12,18 @@ contract NFGho is ERC721Holder {
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event GhoMinted(address indexed user, uint256 amount);
 
+    struct Collateral {
+        mapping(uint256 tokenId => bool hasDeposited) hasDepositedTokenId;
+        uint256 tokensCount; // each tokenId of a collection is considered fungible for now, since we're using floor price to calculate value
+    }
+
     GhoToken public ghoToken;
     address[] public supportedCollaterals;
     mapping(address collateral => bool isSupported) public isCollateralSupported;
     mapping(address collateral => address priceFeed) public priceFeeds;
     address public ethUsdPriceFeed; // TODO: can be stored in priceFeeds mapping
-    mapping(address user => mapping(address collateralNFT => mapping(uint256 tokenId => bool hasDeposited))) public
-        hasDepositedCollateral;
-    // each tokenId of a collection is considered fungible for now, 
-    // since we're using floor price to calculate value
-    mapping(address user => mapping(address collateralNFT => uint256 count)) public collateralNFTCount;
+
+    mapping(address user => mapping(address collateralNFT => Collateral collateral)) internal collateralNFTs;
     mapping(address user => uint256 ghoMinted) internal ghoMinted;
 
     modifier onlySupportedCollateral(address _collateral) {
@@ -48,8 +50,8 @@ contract NFGho is ERC721Holder {
     }
 
     function depositCollateral(address _collateral, uint256 _tokenId) external onlySupportedCollateral(_collateral) {
-        hasDepositedCollateral[msg.sender][_collateral][_tokenId] = true;
-        collateralNFTCount[msg.sender][_collateral]++;
+        collateralNFTs[msg.sender][_collateral].hasDepositedTokenId[_tokenId] = true;
+        collateralNFTs[msg.sender][_collateral].tokensCount++;
         IERC721(_collateral).safeTransferFrom(msg.sender, address(this), _tokenId);
         emit CollateralDeposited(msg.sender, _collateral, _tokenId);
     }
@@ -83,6 +85,18 @@ contract NFGho is ERC721Holder {
         (, int256 price,,,) = priceFeed.latestRoundData();
         // * Chainlink ETH/USD feed is in USD with 8 decimals
         return uint256(price);
+    }
+
+    function collateralDepositedCount(address _user, address _collateral) public view returns (uint256) {
+        return collateralNFTs[_user][_collateral].tokensCount;
+    }
+
+    function hasDepositedCollateralToken(address _user, address _collateral, uint256 _tokenId)
+        public
+        view
+        returns (bool)
+    {
+        return collateralNFTs[_user][_collateral].hasDepositedTokenId[_tokenId];
     }
 
     function ghoMintedOf(address _user) public view returns (uint256) {
