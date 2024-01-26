@@ -6,6 +6,8 @@ import {NFGho} from "../src/NFGho.sol";
 import {ERC721Mock} from "./mocks/ERC721Mock.sol";
 
 contract NFGhoTest is Test {
+    event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
+
     NFGho public nfgho;
     ERC721Mock public bayc = new ERC721Mock();
 
@@ -28,6 +30,8 @@ contract NFGhoTest is Test {
         // deposit collateral
         uint256 collateralTokenId = 1;
         bayc.approve(address(nfgho), collateralTokenId);
+        vm.expectEmit(true, true, true, true);
+        emit CollateralDeposited(alice, address(bayc), collateralTokenId);
         nfgho.depositCollateral(address(bayc), collateralTokenId);
 
         // final balances
