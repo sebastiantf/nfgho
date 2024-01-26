@@ -12,12 +12,13 @@ contract NFGho is ERC721Holder {
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event GhoMinted(address indexed user, uint256 amount);
 
-    // TODO: allow/disallow multiple tokenIds of same collection
     GhoToken public ghoToken;
     address[] public supportedCollaterals;
     mapping(address collateral => bool isSupported) public isCollateralSupported;
     mapping(address collateral => address priceFeed) public priceFeeds;
     address public ethUsdPriceFeed; // TODO: can be stored in priceFeeds mapping
+    // TODO: allow/disallow multiple tokenIds of same collection
+    // TODO: bug: tokenId 0 would be considered as collateral for all collections for every user
     mapping(address user => mapping(address collateralNFT => uint256 tokenId)) internal collaterals;
     mapping(address user => uint256 ghoMinted) internal ghoMinted;
 
