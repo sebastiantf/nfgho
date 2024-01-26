@@ -17,15 +17,18 @@ contract NFGhoTest is Test {
     GhoToken public ghoToken;
 
     address alice = makeAddr("alice");
+    address mockV3Aggregator = makeAddr("mockV3Aggregator");
 
     function setUp() public {
         DeployGHO deployer = new DeployGHO();
         (ghoToken) = deployer.run();
 
         address[] memory _supportedCollaterals = new address[](1);
+        address[] memory _priceFeeds = new address[](1);
         _supportedCollaterals[0] = address(bayc);
+        _priceFeeds[0] = mockV3Aggregator;
 
-        nfgho = new NFGho(ghoToken, _supportedCollaterals);
+        nfgho = new NFGho(ghoToken, _supportedCollaterals, _priceFeeds);
 
         vm.startPrank(alice);
         IGhoToken.Facilitator memory nfghoFacilitator = IGhoToken.Facilitator(2 ether, 0, "NFGho");
@@ -39,6 +42,7 @@ contract NFGhoTest is Test {
         assertEq(address(nfgho.ghoToken()), address(ghoToken));
         assertEq(nfgho.supportedCollaterals(0), address(bayc));
         assertTrue(nfgho.isCollateralSupported(address(bayc)));
+        assertEq(nfgho.priceFeeds(address(bayc)), mockV3Aggregator);
     }
 
     /* depositCollateral() */

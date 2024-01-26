@@ -15,6 +15,7 @@ contract NFGho is ERC721Holder {
     GhoToken public ghoToken;
     address[] public supportedCollaterals;
     mapping(address collateral => bool isSupported) public isCollateralSupported;
+    mapping(address collateral => address priceFeed) public priceFeeds;
     mapping(address user => mapping(address collateralNFT => uint256 tokenId)) internal collaterals;
     mapping(address user => uint256 ghoMinted) internal ghoMinted;
 
@@ -25,11 +26,13 @@ contract NFGho is ERC721Holder {
         _;
     }
 
-    constructor(GhoToken _ghoToken, address[] memory _supportedCollaterals) {
+    constructor(GhoToken _ghoToken, address[] memory _supportedCollaterals, address[] memory _priceFeeds) {
         ghoToken = _ghoToken;
         supportedCollaterals = _supportedCollaterals;
+
         for (uint256 i = 0; i < _supportedCollaterals.length; i++) {
             isCollateralSupported[_supportedCollaterals[i]] = true;
+            priceFeeds[_supportedCollaterals[i]] = _priceFeeds[i];
         }
     }
 
