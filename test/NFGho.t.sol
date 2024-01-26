@@ -3,11 +3,38 @@ pragma solidity 0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {NFGho} from "../src/NFGho.sol";
+import {ERC721Mock} from "./mocks/ERC721Mock.sol";
 
 contract NFGhoTest is Test {
     NFGho public nfgho;
+    ERC721Mock public bayc = new ERC721Mock();
+
+    address alice = makeAddr("alice");
 
     function setUp() public {
         nfgho = new NFGho();
+
+        bayc.mint(alice);
+    }
+
+    function test_depositCollateral() public {
+        vm.startPrank(alice);
+
+        // initial balances
+        assertEq(nfgho.collateralTokenIdOf(alice, address(bayc)), 0);
+        assertEq(bayc.balanceOf(alice), 1);
+        assertEq(bayc.balanceOf(address(nfgho)), 0);
+
+        // deposit collateral
+        uint256 collateralTokenId = 1;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+
+        // final balances
+        assertEq(nfgho.collateralTokenIdOf(alice, address(bayc)), collateralTokenId);
+        assertEq(bayc.balanceOf(alice), 0);
+        assertEq(bayc.balanceOf(address(nfgho)), 1);
+
+        vm.stopPrank();
     }
 }
