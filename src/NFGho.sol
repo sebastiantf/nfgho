@@ -9,12 +9,14 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 contract NFGho is ERC721Holder {
     error UnsupportedCollateral();
     error InsufficientHealthFactor();
+    error SufficientHealthFactor();
     error InvalidOwner();
 
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event CollateralRedeemed(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event GhoMinted(address indexed user, uint256 amount);
     event GhoBurned(address indexed user, uint256 amount);
+    event Liquidated(address indexed user, address indexed collateral, uint256 indexed tokenId, uint256 ghoBurned);
 
     struct Collateral {
         mapping(uint256 tokenId => bool hasDeposited) hasDepositedTokenId;
@@ -96,6 +98,32 @@ contract NFGho is ERC721Holder {
         ghoToken.transferFrom(msg.sender, address(this), _amount);
         ghoToken.burn(_amount);
         emit GhoBurned(msg.sender, _amount);
+    }
+
+    function liquidate(address _user, address _collateral, uint256 _tokenId, uint256 _ghoAmount) external {
+        uint256 currentHealthFactor = healthFactor(_user);
+        if (currentHealthFactor >= 1e18) revert SufficientHealthFactor();
+
+        // redeem collateral from user
+        collateralNFTs[_user][_collateral].hasDepositedTokenId[_tokenId] = false;
+        collateralNFTs[_user][_collateral].tokensCount--;
+        // transfer NFT to liquidator
+        IERC721(_collateral).safeTransferFrom(address(this), msg.sender, _tokenId);
+        emit CollateralRedeemed(_user, _collateral, _tokenId);
+
+        // burn Gho equivalent to nft floor value from liquidator
+        uint256 _burnAmount = _ghoAmount;
+        ghoMinted[_user] -= _burnAmount; // reduce debt from user
+        // burn Gho from liquidator
+        ghoToken.transferFrom(msg.sender, address(this), _burnAmount);
+        ghoToken.burn(_burnAmount);
+        emit GhoBurned(_user, _burnAmount);
+
+        // check health factor improved
+        uint256 newHealthFactor = healthFactor(_user);
+        if (newHealthFactor <= currentHealthFactor) revert InsufficientHealthFactor();
+
+        emit Liquidated(_user, _collateral, _tokenId, _burnAmount);
     }
 
     function healthFactor(address user) public view returns (uint256) {

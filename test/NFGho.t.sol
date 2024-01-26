@@ -22,6 +22,8 @@ contract NFGhoTest is Test {
     MockV3Aggregator public mockV3AggregatorEthUsd = new MockV3Aggregator();
 
     address alice = makeAddr("alice");
+    address liquidator = makeAddr("liquidator");
+    address ghoGod = makeAddr("ghoGod"); // GHO facilitator to mint GHO for testing
 
     function setUp() public {
         DeployGHO deployer = new DeployGHO();
@@ -38,7 +40,9 @@ contract NFGhoTest is Test {
 
         vm.startPrank(alice);
         IGhoToken.Facilitator memory nfghoFacilitator = IGhoToken.Facilitator(100_000 ether, 0, "NFGho");
+        IGhoToken.Facilitator memory ghoGodFacilitator = IGhoToken.Facilitator(100_000 ether, 0, "ghoGod");
         ghoToken.addFacilitator(address(nfgho), nfghoFacilitator);
+        ghoToken.addFacilitator(ghoGod, ghoGodFacilitator);
         vm.stopPrank();
 
         bayc.mint(alice);
@@ -306,5 +310,174 @@ contract NFGhoTest is Test {
         assertEq(nfgho.healthFactor(alice), 2e18);
 
         vm.stopPrank();
+    }
+
+    /* liquidate() */
+    function test_liquidate() public {
+        vm.startPrank(alice);
+
+        // deposit collateral
+        uint256 collateralTokenId = 1;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+        assertEq(nfgho.collateralDepositedCount(alice, address(bayc)), 1);
+        // mint 80% of collateral value in GHO: 50,000 USD * 80% = 40,000 USD
+        nfgho.mintGho(40_000e18);
+        vm.stopPrank();
+
+        // health factor = 50_000 * 80% / 40_000 = 1
+        assertEq(nfgho.healthFactor(alice), 1e18);
+
+        // decrease BAYC floor price to 22.5 ETH = 45,000 USD
+        mockV3AggregatorBayc.setPrice(22.5 ether);
+
+        // health factor = 45_000 * 80% / 40_000 = 0.9e18
+        uint256 newHealthFactor = nfgho.healthFactor(alice);
+        assertEq(newHealthFactor, 0.9e18);
+
+        // liquidate
+        // repay 40_000, take 45_000 collateral
+        // debt = 0, collateral = 0; hf = max
+        uint256 liquidateAmount = 40_000e18;
+        // mint 40_000 GHO for liquidator
+        vm.prank(ghoGod);
+        ghoToken.mint(liquidator, liquidateAmount);
+        vm.stopPrank();
+        vm.startPrank(liquidator);
+        ghoToken.approve(address(nfgho), liquidateAmount);
+        nfgho.liquidate(alice, address(bayc), collateralTokenId, liquidateAmount);
+        vm.stopPrank();
+
+        // final balances
+        newHealthFactor = nfgho.healthFactor(alice);
+        assertEq(newHealthFactor, type(uint256).max);
+        assertEq(nfgho.ghoMintedOf(alice), 0);
+        assertEq(ghoToken.balanceOf(alice), 40_000e18);
+        assertEq(nfgho.hasDepositedCollateralToken(alice, address(bayc), 1), false);
+        assertEq(nfgho.collateralDepositedCount(alice, address(bayc)), 0);
+        assertEq(bayc.balanceOf(alice), 0);
+        assertEq(bayc.balanceOf(address(nfgho)), 0);
+    }
+
+    function test_liquidateRevertsIfInsufficientHealthFactor() public {
+        vm.startPrank(alice);
+
+        // deposit collateral
+        uint256 collateralTokenId = 1;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+        assertEq(nfgho.collateralDepositedCount(alice, address(bayc)), 1);
+        // mint 80% of collateral value in GHO: 50,000 USD * 80% = 40,000 USD
+        nfgho.mintGho(40_000e18);
+        vm.stopPrank();
+
+        // health factor = 50_000 * 80% / 40_000 = 1
+        assertEq(nfgho.healthFactor(alice), 1e18);
+
+        // decrease BAYC floor price to 22.5 ETH = 45,000 USD
+        mockV3AggregatorBayc.setPrice(22.5 ether);
+
+        // health factor = 45_000 * 80% / 40_000 = 0.9e18
+        uint256 newHealthFactor = nfgho.healthFactor(alice);
+        assertEq(newHealthFactor, 0.9e18);
+
+        // liquidate
+        // repay 39_000, take 45_000 collateral
+        // debt = 40_000 - 39_000 = 1000, collateral = 0; hf = 0
+        uint256 liquidateAmount = 39_000e18;
+        // mint 39_000 GHO for liquidator
+        vm.prank(ghoGod);
+        ghoToken.mint(liquidator, liquidateAmount);
+        vm.stopPrank();
+        vm.startPrank(liquidator);
+        ghoToken.approve(address(nfgho), liquidateAmount);
+        vm.expectRevert(NFGho.InsufficientHealthFactor.selector);
+        nfgho.liquidate(alice, address(bayc), collateralTokenId, liquidateAmount);
+        vm.stopPrank();
+    }
+
+    function test_liquidateRevertsIfInsufficientHealthFactor_multipleCollaterals() public {
+        vm.startPrank(alice);
+
+        // deposit collateral 1
+        uint256 collateralTokenId = 1;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+        assertEq(nfgho.collateralDepositedCount(alice, address(bayc)), 1);
+        // mint 80% of collateral value in GHO: 50,000 USD * 80% = 40,000 USD
+        nfgho.mintGho(40_000e18);
+
+        // deposit collateral 2
+        bayc.mint(alice);
+        collateralTokenId = 2;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+        assertEq(nfgho.collateralDepositedCount(alice, address(bayc)), 2);
+        // mint 80% of collateral value in GHO: 100,000 USD * 80% = 80,000 USD
+        nfgho.mintGho(40_000e18);
+        vm.stopPrank();
+
+        // health factor = 100_000 * 80% / 80_000 = 1
+        assertEq(nfgho.healthFactor(alice), 1e18);
+
+        // decrease BAYC floor price to 22.5 ETH = 45,000 USD
+        mockV3AggregatorBayc.setPrice(22.5 ether);
+
+        // health factor = 90,000 * 80% / 80_000 = 0.9e18
+        uint256 newHealthFactor = nfgho.healthFactor(alice);
+        assertEq(newHealthFactor, 0.9e18);
+
+        // liquidate
+        // repay 44_000, take 45_000 collateral
+        // debt = 80_000 - 44_000 = 36_000, collateral = 90_000 - 45_000 = 45_000; hf = 45_000 * 80% / 36_000 = 1
+        uint256 liquidateAmount = 44_000e18;
+        // mint 44_000 GHO for liquidator
+        vm.prank(ghoGod);
+        ghoToken.mint(liquidator, liquidateAmount);
+        vm.stopPrank();
+        vm.startPrank(liquidator);
+        ghoToken.approve(address(nfgho), liquidateAmount);
+        nfgho.liquidate(alice, address(bayc), 1, liquidateAmount);
+        vm.stopPrank();
+
+        newHealthFactor = nfgho.healthFactor(alice);
+        assertEq(newHealthFactor, 1e18);
+        assertEq(nfgho.ghoMintedOf(alice), 36_000e18);
+        assertEq(ghoToken.balanceOf(alice), 80_000e18);
+        assertEq(nfgho.hasDepositedCollateralToken(alice, address(bayc), 1), false);
+        assertEq(nfgho.hasDepositedCollateralToken(alice, address(bayc), 2), true);
+        assertEq(nfgho.collateralDepositedCount(alice, address(bayc)), 1);
+        assertEq(bayc.balanceOf(alice), 0);
+        assertEq(bayc.balanceOf(address(nfgho)), 1);
+
+        // decrease BAYC floor price to 20 ETH = 40,000 USD
+        mockV3AggregatorBayc.setPrice(20 ether);
+
+        // health factor = 40,000 * 80% / 36_000 = 0.888888888888888888e18
+        newHealthFactor = nfgho.healthFactor(alice);
+        assertEq(newHealthFactor, 0.888888888888888888e18);
+
+        // liquidate next token
+        // repay 36_000, take 45_000 collateral
+        // debt = 0, collateral = 0; hf = max
+        liquidateAmount = 36_000e18;
+        // mint 36_000 GHO for liquidator
+        vm.prank(ghoGod);
+        ghoToken.mint(liquidator, liquidateAmount);
+        vm.stopPrank();
+        vm.startPrank(liquidator);
+        ghoToken.approve(address(nfgho), liquidateAmount);
+        nfgho.liquidate(alice, address(bayc), 2, liquidateAmount);
+        vm.stopPrank();
+
+        newHealthFactor = nfgho.healthFactor(alice);
+        assertEq(newHealthFactor, type(uint256).max);
+        assertEq(nfgho.ghoMintedOf(alice), 0);
+        assertEq(ghoToken.balanceOf(alice), 80_000e18);
+        assertEq(nfgho.hasDepositedCollateralToken(alice, address(bayc), 1), false);
+        assertEq(nfgho.hasDepositedCollateralToken(alice, address(bayc), 2), false);
+        assertEq(nfgho.collateralDepositedCount(alice, address(bayc)), 0);
+        assertEq(bayc.balanceOf(alice), 0);
+        assertEq(bayc.balanceOf(address(nfgho)), 0);
     }
 }
