@@ -11,11 +11,17 @@ contract NFGho is ERC721Holder {
 
     // TODO: allow/disallow multiple tokenIds of same collection
     GhoToken public ghoToken;
+    address[] public supportedCollaterals;
+    mapping(address collateral => bool isSupported) public isCollateralSupported;
     mapping(address user => mapping(address collateralNFT => uint256 tokenId)) internal collaterals;
     mapping(address user => uint256 ghoMinted) internal ghoMinted;
 
-    constructor(GhoToken _ghoToken) {
+    constructor(GhoToken _ghoToken, address[] memory _supportedCollaterals) {
         ghoToken = _ghoToken;
+        supportedCollaterals = _supportedCollaterals;
+        for (uint256 i = 0; i < _supportedCollaterals.length; i++) {
+            isCollateralSupported[_supportedCollaterals[i]] = true;
+        }
     }
 
     function depositCollateral(address _collateral, uint256 _tokenId) external {

@@ -21,7 +21,11 @@ contract NFGhoTest is Test {
     function setUp() public {
         DeployGHO deployer = new DeployGHO();
         (ghoToken) = deployer.run();
-        nfgho = new NFGho(ghoToken);
+
+        address[] memory _supportedCollaterals = new address[](1);
+        _supportedCollaterals[0] = address(bayc);
+
+        nfgho = new NFGho(ghoToken, _supportedCollaterals);
 
         vm.startPrank(alice);
         IGhoToken.Facilitator memory nfghoFacilitator = IGhoToken.Facilitator(2 ether, 0, "NFGho");
@@ -33,6 +37,8 @@ contract NFGhoTest is Test {
 
     function test_initialState() public {
         assertEq(address(nfgho.ghoToken()), address(ghoToken));
+        assertEq(nfgho.supportedCollaterals(0), address(bayc));
+        assertTrue(nfgho.isCollateralSupported(address(bayc)));
     }
 
     /* depositCollateral() */
