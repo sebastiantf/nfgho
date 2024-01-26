@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {GhoToken} from "gho-core/src/contracts/gho/GhoToken.sol";
 
 contract NFGho is ERC721Holder {
+    error UnsupportedCollateral();
+
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event GhoMinted(address indexed user, uint256 amount);
 
@@ -16,6 +18,13 @@ contract NFGho is ERC721Holder {
     mapping(address user => mapping(address collateralNFT => uint256 tokenId)) internal collaterals;
     mapping(address user => uint256 ghoMinted) internal ghoMinted;
 
+    modifier onlySupportedCollateral(address _collateral) {
+        if (!isCollateralSupported[_collateral]) {
+            revert UnsupportedCollateral();
+        }
+        _;
+    }
+
     constructor(GhoToken _ghoToken, address[] memory _supportedCollaterals) {
         ghoToken = _ghoToken;
         supportedCollaterals = _supportedCollaterals;
@@ -24,7 +33,7 @@ contract NFGho is ERC721Holder {
         }
     }
 
-    function depositCollateral(address _collateral, uint256 _tokenId) external {
+    function depositCollateral(address _collateral, uint256 _tokenId) external onlySupportedCollateral(_collateral) {
         collaterals[msg.sender][_collateral] = _tokenId;
         IERC721(_collateral).safeTransferFrom(msg.sender, address(this), _tokenId);
         emit CollateralDeposited(msg.sender, _collateral, _tokenId);

@@ -65,6 +65,13 @@ contract NFGhoTest is Test {
         vm.stopPrank();
     }
 
+    function test_depositCollateralRevertsIfUnsupported() public {
+        ERC721Mock unsupported = new ERC721Mock();
+        uint256 collateralTokenId = 1;
+        vm.expectRevert(NFGho.UnsupportedCollateral.selector);
+        nfgho.depositCollateral(address(unsupported), collateralTokenId);
+    }
+
     /* mintGho() */
     function test_mintGho() public {
         vm.startPrank(alice);
