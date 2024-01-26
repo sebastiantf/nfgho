@@ -116,4 +116,9 @@ contract NFGhoTest is Test {
     function test_ethUsd() public {
         assertEq(nfgho.ethUsd(), 2000e8);
     }
+
+    /* nftFloorValueInUsd() */
+    function test_nftFloorValueInUsd() public {
+        assertEq(nfgho.nftFloorValueInUsd(address(bayc)), 50_000e18); // 25 ETH * 2000 USD / ETH = 50,000 USD
+    }
 }

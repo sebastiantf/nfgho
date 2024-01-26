@@ -56,6 +56,16 @@ contract NFGho is ERC721Holder {
         emit GhoMinted(msg.sender, _amount);
     }
 
+    function nftFloorValueInUsd(address _nftAddress) public view returns (uint256) {
+        uint256 nftFloorPriceInEth = nftFloorPrice(_nftAddress);
+        uint256 ethUsdPrice = ethUsd();
+        // USD price feed has 8 decimals
+        // We scale it to 18 decimals: 1e8 * 1e10 / 1e18 = 1e18
+        // nft value in usd = ethUsdPrice * nftFloorPriceInEth
+        // TODO: generalize precision
+        return ((ethUsdPrice * 1e10) * nftFloorPriceInEth) / 1e18;
+    }
+
     function nftFloorPrice(address _nftAddress) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(priceFeeds[_nftAddress]);
         // * All Chainlink NFT Floor Price feed is in ETH with 18 decimals
