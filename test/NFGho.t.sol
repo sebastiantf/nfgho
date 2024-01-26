@@ -139,4 +139,30 @@ contract NFGhoTest is Test {
         mockV3AggregatorEthUsd.setPrice(3000e8);
         assertEq(nfgho.nftFloorValueInUsd(address(bayc)), 90_000e18); // 30 ETH * 3000 USD / ETH = 90,000 USD
     }
+
+    /* totalCollateralValueInUSD() */
+    function test_totalCollateralValueInUSD() public {
+        vm.startPrank(alice);
+
+        // initial balances
+        assertEq(nfgho.totalCollateralValueInUSD(alice), 0);
+
+        // deposit collateral
+        uint256 collateralTokenId = 1;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+
+        // final balances
+        assertEq(nfgho.totalCollateralValueInUSD(alice), 50_000e18); // 25 ETH * 2000 USD / ETH = 50,000 USD
+
+        // mint and deposit one bayc token
+        bayc.mint(alice);
+        collateralTokenId = 2;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+
+        assertEq(nfgho.totalCollateralValueInUSD(alice), 100_000e18); // 50,000 USD + 50,000 USD
+
+        vm.stopPrank();
+    }
 }

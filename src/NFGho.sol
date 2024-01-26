@@ -62,6 +62,17 @@ contract NFGho is ERC721Holder {
         emit GhoMinted(msg.sender, _amount);
     }
 
+    function totalCollateralValueInUSD(address user) public view returns (uint256) {
+        uint256 _totalCollateralValueInUSD;
+        for (uint256 i = 0; i < supportedCollaterals.length; i++) {
+            address collateral = supportedCollaterals[i];
+            uint256 collateralTokensCount = collateralDepositedCount(user, collateral);
+            uint256 collateralValueInUSD = nftFloorValueInUsd(collateral) * collateralTokensCount;
+            _totalCollateralValueInUSD += collateralValueInUSD;
+        }
+        return _totalCollateralValueInUSD;
+    }
+
     function nftFloorValueInUsd(address _nftAddress) public view returns (uint256) {
         uint256 nftFloorPriceInEth = nftFloorPrice(_nftAddress);
         uint256 ethUsdPrice = ethUsd();
