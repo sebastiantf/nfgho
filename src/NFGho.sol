@@ -21,6 +21,9 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @notice Thrown when user tries to redeem collateral that they don't own
     error InvalidOwner();
 
+    /// @notice Thrown when collaterals and price feeds list don't match
+    error InvalidCollateralsAndPriceFeeds();
+
     /// @notice Emitted when a user deposits collateral
     /// @param user Address of the user
     /// @param collateral Address of the collateral
@@ -126,7 +129,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
         address[] memory _priceFeeds,
         address _ethUsdPriceFeed
     ) {
-        // TODO: check if _supportedCollaterals.length == _priceFeeds.length
+        if (_supportedCollaterals.length != _priceFeeds.length) revert InvalidCollateralsAndPriceFeeds();
         ghoToken = _ghoToken;
         ghoTreasury = _ghoTreasury;
         supportedCollaterals = _supportedCollaterals;

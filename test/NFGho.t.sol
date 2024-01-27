@@ -67,6 +67,16 @@ contract NFGhoTest is Test {
         assertEq(price, 2000e8);
     }
 
+    function test_constructorRevertsIfCollateralAndPriceFeedLengthMismatch() public {
+        address[] memory _supportedCollaterals = new address[](2);
+        address[] memory _priceFeeds = new address[](1);
+        _supportedCollaterals[0] = address(bayc);
+        _supportedCollaterals[1] = address(bayc);
+        _priceFeeds[0] = address(mockV3AggregatorBayc);
+        vm.expectRevert(NFGho.InvalidCollateralsAndPriceFeeds.selector);
+        new NFGho(ghoToken, ghoTreasury, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
+    }
+
     /* depositCollateral() */
     function test_depositCollateral() public {
         vm.startPrank(alice);
