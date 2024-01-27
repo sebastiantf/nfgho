@@ -14,6 +14,7 @@ contract NFGhoTest is Test {
     event CollateralRedeemed(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event GhoMinted(address indexed user, uint256 amount);
     event GhoBurned(address indexed user, uint256 amount);
+    event Liquidated(address indexed user, address indexed collateral, uint256 indexed tokenId, uint256 ghoBurned);
 
     NFGho public nfgho;
     ERC721Mock public bayc = new ERC721Mock();
@@ -374,6 +375,8 @@ contract NFGhoTest is Test {
         vm.stopPrank();
         vm.startPrank(liquidator);
         ghoToken.approve(address(nfgho), burnAmountWithFee);
+        vm.expectEmit(true, true, true, true);
+        emit Liquidated(alice, address(bayc), collateralTokenId, liquidateAmount);
         nfgho.liquidate(alice, address(bayc), collateralTokenId, liquidateAmount);
         vm.stopPrank();
 
