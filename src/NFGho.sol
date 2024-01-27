@@ -113,6 +113,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
         uint256 currentHealthFactor = healthFactor(_user);
         if (currentHealthFactor >= 1e18) revert SufficientHealthFactor();
 
+        // TODO: refactor redeemCollateral() & burnGho() to avoid code duplication
         // redeem collateral from user
         collateralNFTs[_user][_collateral].hasDepositedTokenId[_tokenId] = false;
         collateralNFTs[_user][_collateral].tokensCount--;
