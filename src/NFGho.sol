@@ -102,7 +102,10 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @notice Reverts if used collateral is not supported
     modifier onlySupportedCollateral(address _collateral) {
         if (!isCollateralSupported[_collateral]) {
-            revert UnsupportedCollateral();
+            assembly {
+                mstore(0x00, 0x621a1355) // revert UnsupportedCollateral();
+                revert(0x1c, 0x04)
+            }
         }
         _;
     }
@@ -110,7 +113,10 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @notice Reverts if user doesn't own the collateral token
     modifier onlyDepositedCollateralToken(address _collateral, uint256 _tokenId) {
         if (!collateralNFTs[msg.sender][_collateral].hasDepositedTokenId[_tokenId]) {
-            revert InvalidOwner();
+            assembly {
+                mstore(0x00, 0x49e27cff) // revert InvalidOwner();
+                revert(0x1c, 0x04)
+            }
         }
         _;
     }
@@ -129,7 +135,12 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
         address[] memory _priceFeeds,
         address _ethUsdPriceFeed
     ) {
-        if (_supportedCollaterals.length != _priceFeeds.length) revert InvalidCollateralsAndPriceFeeds();
+        if (_supportedCollaterals.length != _priceFeeds.length) {
+            assembly {
+                mstore(0x00, 0x2f2bb148) // revert InvalidCollateralsAndPriceFeeds();
+                revert(0x1c, 0x04)
+            }
+        }
         ghoToken = _ghoToken;
         ghoTreasury = _ghoTreasury;
         supportedCollaterals = _supportedCollaterals;
@@ -157,7 +168,12 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @param _amount Amount of Gho to mint
     function mintGho(uint256 _amount) external {
         ghoMinted[msg.sender] += _amount;
-        if (healthFactor(msg.sender) < 1e18) revert InsufficientHealthFactor();
+        if (healthFactor(msg.sender) < 1e18) {
+            assembly {
+                mstore(0x00, 0x034c7e5e) // revert InsufficientHealthFactor();
+                revert(0x1c, 0x04)
+            }
+        }
         ghoToken.mint(msg.sender, _amount);
         emit GhoMinted(msg.sender, _amount);
     }
@@ -173,7 +189,12 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     {
         collateralNFTs[msg.sender][_collateral].hasDepositedTokenId[_tokenId] = false;
         collateralNFTs[msg.sender][_collateral].tokensCount--;
-        if (healthFactor(msg.sender) < 1e18) revert InsufficientHealthFactor();
+        if (healthFactor(msg.sender) < 1e18) {
+            assembly {
+                mstore(0x00, 0x034c7e5e) // revert InsufficientHealthFactor();
+                revert(0x1c, 0x04)
+            }
+        }
         IERC721(_collateral).safeTransferFrom(address(this), msg.sender, _tokenId);
         emit CollateralRedeemed(msg.sender, _collateral, _tokenId);
     }
@@ -191,7 +212,12 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
 
     function liquidate(address _user, address _collateral, uint256 _tokenId, uint256 _ghoAmount) external {
         uint256 currentHealthFactor = healthFactor(_user);
-        if (currentHealthFactor >= 1e18) revert SufficientHealthFactor();
+        if (currentHealthFactor >= 1e18) {
+            assembly {
+                mstore(0x00, 0x0d7b1848) // revert SufficientHealthFactor();
+                revert(0x1c, 0x04)
+            }
+        }
 
         // TODO: refactor redeemCollateral() & burnGho() to avoid code duplication
         // redeem collateral from user
@@ -211,7 +237,12 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
 
         // check health factor improved
         uint256 newHealthFactor = healthFactor(_user);
-        if (newHealthFactor <= currentHealthFactor) revert InsufficientHealthFactor();
+        if (newHealthFactor <= currentHealthFactor) {
+            assembly {
+                mstore(0x00, 0x034c7e5e) // revert InsufficientHealthFactor();
+                revert(0x1c, 0x04)
+            }
+        }
 
         emit Liquidated(_user, _collateral, _tokenId, _ghoAmount);
     }
