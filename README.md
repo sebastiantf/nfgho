@@ -46,3 +46,4 @@ $ forge test
 - [ ] Refactors to avoid code duplication
 - [ ] Generalize handling precision & decimals
 - [ ] Tests with multiple collections
+- [ ] Fuzz tests & Invariant tests
