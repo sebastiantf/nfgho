@@ -27,14 +27,14 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @notice Emitted when a user deposits collateral
     /// @param user Address of the user
     /// @param collateral Address of the collateral
-    /// @param _tokenId Token ID of the collateral
-    event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
+    /// @param tokenId Token ID of the collateral
+    event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed tokenId);
 
     /// @notice Emitted when a user redeems collateral
     /// @param user Address of the user
     /// @param collateral Address of the collateral
-    /// @param _tokenId Token ID of the collateral
-    event CollateralRedeemed(address indexed user, address indexed collateral, uint256 indexed _tokenId);
+    /// @param tokenId Token ID of the collateral
+    event CollateralRedeemed(address indexed user, address indexed collateral, uint256 indexed tokenId);
 
     /// @notice Emitted gho debt is minted/taken
     /// @param user Address of the user
@@ -164,7 +164,16 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
         collateralNFTs[msg.sender][_collateral].hasDepositedTokenId[_tokenId] = true;
         collateralNFTs[msg.sender][_collateral].tokensCount++;
         IERC721(_collateral).safeTransferFrom(msg.sender, address(this), _tokenId);
-        emit CollateralDeposited(msg.sender, _collateral, _tokenId);
+        assembly {
+            log4(
+                0x00,
+                0x00, // no data
+                0xf1c0dd7e9b98bbff859029005ef89b127af049cd18df1a8d79f0b7e019911e56, // CollateralDeposited(address,address,uint256)
+                caller(), // user
+                shr(96, shl(96, _collateral)), // collateral
+                _tokenId // tokenId
+            )
+        }
     }
 
     /// @notice Mint Gho debt
