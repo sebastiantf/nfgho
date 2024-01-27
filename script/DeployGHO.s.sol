@@ -10,8 +10,10 @@ contract DeployGHO is Script {
     address alice = makeAddr("alice");
 
     function run() external returns (GhoToken) {
-        GHO_TOKEN = new GhoToken();
-        GHO_TOKEN.transferOwnership(alice);
+        GHO_TOKEN = new GhoToken(alice);
+        vm.startPrank(alice);
+        GHO_TOKEN.grantRole(GHO_TOKEN.FACILITATOR_MANAGER_ROLE(), alice);
+        vm.stopPrank();
         return GHO_TOKEN;
     }
 }

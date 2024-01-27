@@ -41,10 +41,8 @@ contract NFGhoTest is Test {
         nfgho = new NFGho(ghoToken, ghoTreasury, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
 
         vm.startPrank(alice);
-        IGhoToken.Facilitator memory nfghoFacilitator = IGhoToken.Facilitator(100_000 ether, 0, "NFGho");
-        IGhoToken.Facilitator memory ghoGodFacilitator = IGhoToken.Facilitator(100_000 ether, 0, "ghoGod");
-        ghoToken.addFacilitator(address(nfgho), nfghoFacilitator);
-        ghoToken.addFacilitator(ghoGod, ghoGodFacilitator);
+        ghoToken.addFacilitator(address(nfgho), "NFGho", 100_000 ether);
+        ghoToken.addFacilitator(ghoGod, "ghoGod", 100_000 ether);
         vm.stopPrank();
 
         bayc.mint(alice);
