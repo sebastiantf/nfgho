@@ -354,29 +354,40 @@ contract NFGhoTest is Test {
         // repay 40_000, take 45_000 collateral
         // debt = 0, collateral = 0; hf = max
         uint256 liquidateAmount = 40_000e18;
-        // mint 40_000 GHO for liquidator
+        uint256 _fee = (liquidateAmount * nfgho.fee()) / nfgho.PERCENTAGE_FACTOR(); // 40,000 * 0.01% = 4
+        assertEq(_fee, 4e18);
+        uint256 burnAmountWithFee = liquidateAmount + _fee; // 40,000 + 4 = 40,004
+        assertEq(burnAmountWithFee, 40_004e18);
+        // mint 40_000 + fee GHO for liquidator
         vm.prank(ghoGod);
-        ghoToken.mint(liquidator, liquidateAmount);
+        ghoToken.mint(liquidator, burnAmountWithFee);
         vm.stopPrank();
         vm.startPrank(liquidator);
-        ghoToken.approve(address(nfgho), liquidateAmount);
+        ghoToken.approve(address(nfgho), burnAmountWithFee);
         nfgho.liquidate(alice, address(bayc), collateralTokenId, liquidateAmount);
         vm.stopPrank();
 
         // alice: 50000 USD collateral, 40000 USD debt, 40000 GHO balance -> 0 collateral, 0 debt, 40000 GHO balance
         // loss: 45000 - 40000 = 5000 USD
-        // liquidator: 0 USD collateral, 0 USD debt, 40000 GHO balance -> 45000 collateral, 0 debt, 0 GHO balance
-        // profit: 45000 - 4000 = 5000 USD
+        // liquidator: 0 USD collateral, 0 USD debt, 40004 GHO balance -> 45000 collateral, 0 debt, 0 GHO balance
+        // profit: 45000 - 40004 = 4,996 USD
 
         // final balances
         newHealthFactor = nfgho.healthFactor(alice);
         assertEq(newHealthFactor, type(uint256).max);
         assertEq(nfgho.ghoMintedOf(alice), 0);
         assertEq(ghoToken.balanceOf(alice), 40_000e18);
+        assertEq(ghoToken.balanceOf(address(nfgho)), 4e18);
         assertEq(nfgho.hasDepositedCollateralToken(alice, address(bayc), 1), false);
         assertEq(nfgho.collateralDepositedCount(alice, address(bayc)), 0);
         assertEq(bayc.balanceOf(alice), 0);
         assertEq(bayc.balanceOf(address(nfgho)), 0);
+
+        // distribute fee to treasury
+        assertEq(ghoToken.balanceOf(ghoTreasury), 0);
+        nfgho.distributeFeesToTreasury();
+        assertEq(ghoToken.balanceOf(ghoTreasury), 4e18);
+        assertEq(ghoToken.balanceOf(address(nfgho)), 0);
     }
 
     function test_liquidateRevertsIfInsufficientHealthFactor() public {
@@ -405,12 +416,16 @@ contract NFGhoTest is Test {
         // repay 39_000, take 45_000 collateral
         // debt = 40_000 - 39_000 = 1000, collateral = 0; hf = 0
         uint256 liquidateAmount = 39_000e18;
+        uint256 _fee = (liquidateAmount * nfgho.fee()) / nfgho.PERCENTAGE_FACTOR(); // 39,000 * 0.01% = 3.9
+        assertEq(_fee, 3.9e18);
+        uint256 burnAmountWithFee = liquidateAmount + _fee; // 39,000 + 3.9 = 39,003.9
+        assertEq(burnAmountWithFee, 39_003.9e18);
         // mint 39_000 GHO for liquidator
         vm.prank(ghoGod);
-        ghoToken.mint(liquidator, liquidateAmount);
+        ghoToken.mint(liquidator, burnAmountWithFee);
         vm.stopPrank();
         vm.startPrank(liquidator);
-        ghoToken.approve(address(nfgho), liquidateAmount);
+        ghoToken.approve(address(nfgho), burnAmountWithFee);
         vm.expectRevert(NFGho.InsufficientHealthFactor.selector);
         nfgho.liquidate(alice, address(bayc), collateralTokenId, liquidateAmount);
         vm.stopPrank();
@@ -451,12 +466,16 @@ contract NFGhoTest is Test {
         // repay 44_000, take 45_000 collateral
         // debt = 80_000 - 44_000 = 36_000, collateral = 90_000 - 45_000 = 45_000; hf = 45_000 * 80% / 36_000 = 1
         uint256 liquidateAmount = 44_000e18;
+        uint256 _fee = (liquidateAmount * nfgho.fee()) / nfgho.PERCENTAGE_FACTOR(); // 44,000 * 0.01% = 4.4
+        assertEq(_fee, 4.4e18);
+        uint256 burnAmountWithFee = liquidateAmount + _fee; // 44,000 + 4.4 = 44,004.4
+        assertEq(burnAmountWithFee, 44_004.4e18);
         // mint 44_000 GHO for liquidator
         vm.prank(ghoGod);
-        ghoToken.mint(liquidator, liquidateAmount);
+        ghoToken.mint(liquidator, burnAmountWithFee);
         vm.stopPrank();
         vm.startPrank(liquidator);
-        ghoToken.approve(address(nfgho), liquidateAmount);
+        ghoToken.approve(address(nfgho), burnAmountWithFee);
         nfgho.liquidate(alice, address(bayc), 1, liquidateAmount);
         vm.stopPrank();
 
@@ -481,19 +500,23 @@ contract NFGhoTest is Test {
         // repay 36_000, take 40_000 collateral
         // debt = 0, collateral = 0; hf = max
         liquidateAmount = 36_000e18;
+        _fee = (liquidateAmount * nfgho.fee()) / nfgho.PERCENTAGE_FACTOR(); // 46,000 * 0.01% = 3.6
+        assertEq(_fee, 3.6e18);
+        burnAmountWithFee = liquidateAmount + _fee; // 36,000 + 3.6 = 36,003.6
+        assertEq(burnAmountWithFee, 36_003.6e18);
         // mint 36_000 GHO for liquidator
         vm.prank(ghoGod);
-        ghoToken.mint(liquidator, liquidateAmount);
+        ghoToken.mint(liquidator, burnAmountWithFee);
         vm.stopPrank();
         vm.startPrank(liquidator);
-        ghoToken.approve(address(nfgho), liquidateAmount);
+        ghoToken.approve(address(nfgho), burnAmountWithFee);
         nfgho.liquidate(alice, address(bayc), 2, liquidateAmount);
         vm.stopPrank();
 
         // alice: 100,000 USD collateral, 40000 USD debt, 40000 GHO balance -> 0 collateral, 0 debt, 40000 GHO balance
         // loss: (40000 + 45000) - 80000 = 5,000 USD
-        // liquidator: 0 USD collateral, 0 USD debt, 44000 + 36000 = 80,000 GHO balance -> 45000+40000 = 85,000 collateral, 0 debt, 0 GHO balance
-        // profit: 85,000 - 80,000 = 5,000 USD
+        // liquidator: 0 USD collateral, 0 USD debt, 44,004.4 + 36,003.6 = 80,008 GHO balance -> 45000+40000 = 85,000 collateral, 0 debt, 0 GHO balance
+        // profit: 85,000 - 80,008 = 4,992 USD
 
         newHealthFactor = nfgho.healthFactor(alice);
         assertEq(newHealthFactor, type(uint256).max);
