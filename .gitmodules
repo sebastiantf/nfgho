@@ -7,3 +7,6 @@
 [submodule "lib/chainlink"]
 	path = lib/chainlink
 	url = https://github.com/smartcontractkit/chainlink
+[submodule "lib/gho-core"]
+	path = lib/gho-core
+	url = https://github.com/aave/gho-core
