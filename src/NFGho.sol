@@ -8,7 +8,7 @@ import {GhoToken} from "gho-core/src/contracts/gho/GhoToken.sol";
 import {IGhoFacilitator} from "gho-core/src/contracts/gho/interfaces/IGhoFacilitator.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-contract NFGho is ERC721Holder, IGhoFacilitator, Ownable {
+contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     error UnsupportedCollateral();
     error InsufficientHealthFactor();
     error SufficientHealthFactor();
