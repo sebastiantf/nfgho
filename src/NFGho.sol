@@ -141,9 +141,10 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
                 mstore(0x00, 0x2f2bb148) // revert InvalidCollateralsAndPriceFeeds();
                 revert(0x1c, 0x04)
             }
+
+            sstore(ghoToken.slot, _ghoToken)
+            sstore(ghoTreasury.slot, _ghoTreasury)
         }
-        ghoToken = _ghoToken;
-        ghoTreasury = _ghoTreasury;
         supportedCollaterals = _supportedCollaterals;
         ethUsdPriceFeed = _ethUsdPriceFeed;
 
