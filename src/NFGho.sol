@@ -239,7 +239,17 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
         uint256 _fee = (_amount * fee) / PERCENTAGE_FACTOR;
         ghoToken.transferFrom(msg.sender, address(this), _amount + _fee);
         ghoToken.burn(_amount);
-        emit GhoBurned(msg.sender, _amount);
+        assembly {
+            // store _amount at free memory pointer
+            let memPtr := mload(64)
+            mstore(memPtr, _amount)
+            log2(
+                memPtr,
+                32,
+                0x801d8e83524829eede7d24210e8d78d27c896377e5f3106fe65521e8e0278a29, // GhoBurned(address,uint256)
+                caller() // user
+            )
+        }
     }
 
     function liquidate(address _user, address _collateral, uint256 _tokenId, uint256 _ghoAmount) external {
