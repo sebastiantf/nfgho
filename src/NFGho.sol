@@ -219,7 +219,16 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
             }
         }
         IERC721(_collateral).safeTransferFrom(address(this), msg.sender, _tokenId);
-        emit CollateralRedeemed(msg.sender, _collateral, _tokenId);
+        assembly {
+            log4(
+                0x00,
+                0x00, // no data
+                0xa5f9505801b85736b93411e5083d5a6003f3add45d82754efd49b4cca6b8e007, // CollateralRedeemed(address,address,uint256)
+                caller(), // user
+                shr(96, shl(96, _collateral)), // collateral
+                _tokenId // tokenId
+            )
+        }
     }
 
     /// @notice Burn / repay Gho debt
