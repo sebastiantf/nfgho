@@ -58,7 +58,7 @@ contract NFGhoTest is Test, Constants {
 
     function test_initialState() public {
         assertEq(address(nfgho.ghoToken()), address(ghoToken));
-        assertEq(address(nfgho.gsm()), address(gsm));
+        assertEq(address(nfgho.gsmUsdc()), address(gsm));
         assertEq(nfgho.supportedCollaterals(0), address(bayc));
         assertTrue(nfgho.isCollateralSupported(address(bayc)));
         assertEq(nfgho.priceFeeds(address(bayc)), address(mockV3AggregatorBayc));

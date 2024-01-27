@@ -86,7 +86,8 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     GhoToken public ghoToken;
 
     /// @notice Gsm
-    Gsm public gsm;
+    /// @dev Currently supporting Gsm with USDC as base asset
+    Gsm public gsmUsdc;
 
     /// @notice Address of the treasury
     address public ghoTreasury;
@@ -133,6 +134,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
 
     /// @notice Initializes the contract
     /// @param _ghoToken Address of the Gho token
+    /// @param _gsm Address of the Gsm with USDC as base asset
     /// @param _ghoTreasury Address of the treasury
     /// @param _supportedCollaterals List of supported collaterals
     /// @param _priceFeeds List of price feeds for supported collaterals
@@ -156,7 +158,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
             /// @dev these slots are not packed
             /// @dev clean upper bits of address
             sstore(ghoToken.slot, shr(96, shl(96, _ghoToken)))
-            sstore(gsm.slot, shr(96, shl(96, _gsm)))
+            sstore(gsmUsdc.slot, shr(96, shl(96, _gsm)))
             sstore(ghoTreasury.slot, shr(96, shl(96, _ghoTreasury)))
             sstore(ethUsdPriceFeed.slot, shr(96, shl(96, _ethUsdPriceFeed)))
         }
@@ -226,9 +228,9 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
         }
         // mint to this contract to swap after
         ghoToken.mint(address(this), _amount);
-        ghoToken.approve(address(gsm), _amount);
-        (uint256 assetAmount,,,) = gsm.getAssetAmountForBuyAsset(_amount);
-        gsm.buyAsset(assetAmount, msg.sender);
+        ghoToken.approve(address(gsmUsdc), _amount);
+        (uint256 assetAmount,,,) = gsmUsdc.getAssetAmountForBuyAsset(_amount);
+        gsmUsdc.buyAsset(assetAmount, msg.sender);
         emit GhoMintedSwappedToUsdc(msg.sender, _amount, assetAmount);
     }
 
