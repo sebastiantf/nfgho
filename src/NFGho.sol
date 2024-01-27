@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {GhoToken} from "gho-core/src/contracts/gho/GhoToken.sol";
+import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {Gsm} from "gho-core/src/contracts/facilitators/gsm/Gsm.sol";
 import {IGhoFacilitator} from "gho-core/src/contracts/gho/interfaces/IGhoFacilitator.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
@@ -37,16 +39,22 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @param tokenId Token ID of the collateral
     event CollateralRedeemed(address indexed user, address indexed collateral, uint256 indexed tokenId);
 
-    /// @notice Emitted gho debt is minted/taken
+    /// @notice Emitted when gho debt is minted/taken
     /// @param user Address of the user
     /// @param amount Amount of gho minted
     event GhoMinted(address indexed user, uint256 amount);
 
-    /// @notice Emitted gho debt is minted/taken and swapped for USDC
+    /// @notice Emitted when gho debt is minted/taken and swapped for USDC
     /// @param user Address of the user
     /// @param ghoAmount Amount of gho minted
     /// @param usdcAmount Amount of usdc received
     event GhoMintedSwappedToUsdc(address indexed user, uint256 ghoAmount, uint256 usdcAmount);
+
+    /// @notice Emitted when gho debt is minted/taken, swapped for USDC and supplied to Aave
+    /// @param user Address of the user
+    /// @param ghoAmount Amount of gho minted
+    /// @param usdcAmount Amount of usdc received
+    event GhoMintedSwappedToUsdcSupplied(address indexed user, uint256 ghoAmount, uint256 usdcAmount);
 
     /// @notice Emitted gho debt is burned/repaid
     /// @param user Address of the user
@@ -88,6 +96,9 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @notice Gsm
     /// @dev Currently supporting Gsm with USDC as base asset
     Gsm public gsmUsdc;
+
+    /// @notice Aave IPool address
+    IPool public aavePool;
 
     /// @notice Address of the treasury
     address public ghoTreasury;
@@ -135,6 +146,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @notice Initializes the contract
     /// @param _ghoToken Address of the Gho token
     /// @param _gsm Address of the Gsm with USDC as base asset
+    /// @param _aavePool Address of the Aave IPool
     /// @param _ghoTreasury Address of the treasury
     /// @param _supportedCollaterals List of supported collaterals
     /// @param _priceFeeds List of price feeds for supported collaterals
@@ -143,6 +155,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     constructor(
         GhoToken _ghoToken,
         Gsm _gsm,
+        IPool _aavePool,
         address _ghoTreasury,
         address[] memory _supportedCollaterals,
         address[] memory _priceFeeds,
@@ -159,6 +172,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
             /// @dev clean upper bits of address
             sstore(ghoToken.slot, shr(96, shl(96, _ghoToken)))
             sstore(gsmUsdc.slot, shr(96, shl(96, _gsm)))
+            sstore(aavePool.slot, shr(96, shl(96, _aavePool)))
             sstore(ghoTreasury.slot, shr(96, shl(96, _ghoTreasury)))
             sstore(ethUsdPriceFeed.slot, shr(96, shl(96, _ethUsdPriceFeed)))
         }
@@ -232,6 +246,27 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
         (uint256 assetAmount,,,) = gsmUsdc.getAssetAmountForBuyAsset(_amount);
         gsmUsdc.buyAsset(assetAmount, msg.sender);
         emit GhoMintedSwappedToUsdc(msg.sender, _amount, assetAmount);
+    }
+
+    /// @notice Mint Gho debt, swap for USDC, supply to Aave
+    /// @dev Updates user's Gho debt. Reverts if user's health factor falls below 1 when taking new debt
+    /// @param _amount Amount of Gho to mint
+    function mintGhoSwapUsdcSupply(uint256 _amount) external {
+        ghoMinted[msg.sender] += _amount;
+        if (healthFactor(msg.sender) < 1e18) {
+            assembly {
+                mstore(0x00, 0x034c7e5e) // revert InsufficientHealthFactor();
+                revert(0x1c, 0x04)
+            }
+        }
+        // mint to this contract to swap & supply after
+        ghoToken.mint(address(this), _amount);
+        ghoToken.approve(address(gsmUsdc), _amount);
+        (uint256 assetAmount,,,) = gsmUsdc.getAssetAmountForBuyAsset(_amount);
+        gsmUsdc.buyAsset(assetAmount, address(this));
+        IERC20(gsmUsdc.UNDERLYING_ASSET()).approve(address(aavePool), assetAmount);
+        aavePool.supply(gsmUsdc.UNDERLYING_ASSET(), assetAmount, msg.sender, 0);
+        emit GhoMintedSwappedToUsdcSupplied(msg.sender, _amount, assetAmount);
     }
 
     /// @notice Redeem collateral NFT token

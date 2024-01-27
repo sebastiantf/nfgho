@@ -9,6 +9,8 @@ import {AdminUpgradeabilityProxy} from
 import {TestnetERC20} from "@aave/periphery-v3/contracts/mocks/testnet-helpers/TestnetERC20.sol";
 import {FixedPriceStrategy} from "gho-core/src/contracts/facilitators/gsm/priceStrategy/FixedPriceStrategy.sol";
 import {Constants} from "gho-core/src/test/helpers/Constants.sol";
+import {PoolMock, ATokenMock} from "../test/mocks/PoolMock.sol";
+import {IPool} from "@aave/core-v3/contracts/protocol/pool/Pool.sol";
 
 contract DeployGHO is Script, Constants {
     GhoToken GHO_TOKEN;
@@ -16,7 +18,7 @@ contract DeployGHO is Script, Constants {
 
     address alice = makeAddr("alice");
 
-    function run() external returns (GhoToken, Gsm, TestnetERC20) {
+    function run() external returns (GhoToken, Gsm, TestnetERC20, IPool, ATokenMock) {
         // Deploy GhoToken
         GHO_TOKEN = new GhoToken(alice);
         vm.startPrank(alice);
@@ -38,6 +40,11 @@ contract DeployGHO is Script, Constants {
         vm.prank(alice);
         GHO_TOKEN.addFacilitator(address(GHO_GSM), "Gsm", 100_000 ether);
 
-        return (GHO_TOKEN, GHO_GSM, USDC_TOKEN);
+        // Deploy Aave PoolMock, USDC's ATokenMock
+        IPool pool = IPool(address(new PoolMock()));
+        ATokenMock usdcAToken = new ATokenMock(pool);
+        PoolMock(address(pool)).setAToken(usdcAToken);
+
+        return (GHO_TOKEN, GHO_GSM, USDC_TOKEN, pool, usdcAToken);
     }
 }

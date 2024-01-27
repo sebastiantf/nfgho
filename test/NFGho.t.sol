@@ -11,12 +11,15 @@ import {TestnetERC20} from "@aave/periphery-v3/contracts/mocks/testnet-helpers/T
 import {IGhoToken} from "gho-core/src/contracts/gho/interfaces/IGhoToken.sol";
 import {MockV3Aggregator} from "./mocks/MockV3Aggregator.sol";
 import {Constants} from "gho-core/src/test/helpers/Constants.sol";
+import {ATokenMock} from "./mocks/ATokenMock.sol";
+import {IPool} from "@aave/core-v3/contracts/protocol/pool/Pool.sol";
 
 contract NFGhoTest is Test, Constants {
     event CollateralDeposited(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event CollateralRedeemed(address indexed user, address indexed collateral, uint256 indexed _tokenId);
     event GhoMinted(address indexed user, uint256 amount);
     event GhoMintedSwappedToUsdc(address indexed user, uint256 ghoAmount, uint256 usdcAmount);
+    event GhoMintedSwappedToUsdcSupplied(address indexed user, uint256 ghoAmount, uint256 usdcAmount);
     event GhoBurned(address indexed user, uint256 amount);
     event Liquidated(address indexed user, address indexed collateral, uint256 indexed tokenId, uint256 ghoBurned);
 
@@ -27,6 +30,8 @@ contract NFGhoTest is Test, Constants {
     TestnetERC20 public usdc;
     MockV3Aggregator public mockV3AggregatorBayc = new MockV3Aggregator();
     MockV3Aggregator public mockV3AggregatorEthUsd = new MockV3Aggregator();
+    IPool public poolMock;
+    ATokenMock public usdcATokenMock;
 
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
@@ -36,7 +41,7 @@ contract NFGhoTest is Test, Constants {
 
     function setUp() public {
         DeployGHO deployer = new DeployGHO();
-        (ghoToken, gsm, usdc) = deployer.run();
+        (ghoToken, gsm, usdc, poolMock, usdcATokenMock) = deployer.run();
 
         address[] memory _supportedCollaterals = new address[](1);
         address[] memory _priceFeeds = new address[](1);
@@ -45,8 +50,9 @@ contract NFGhoTest is Test, Constants {
         mockV3AggregatorBayc.setPrice(25 ether); // set floor price of 25 ETH
         mockV3AggregatorEthUsd.setPrice(2000e8); // set ETH/USD price of 2000 USD in 8 decimals
 
-        nfgho =
-            new NFGho(ghoToken, gsm, ghoTreasury, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
+        nfgho = new NFGho(
+            ghoToken, gsm, poolMock, ghoTreasury, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd)
+        );
 
         vm.startPrank(alice);
         ghoToken.addFacilitator(address(nfgho), "NFGho", 100_000 ether);
@@ -59,6 +65,7 @@ contract NFGhoTest is Test, Constants {
     function test_initialState() public {
         assertEq(address(nfgho.ghoToken()), address(ghoToken));
         assertEq(address(nfgho.gsmUsdc()), address(gsm));
+        assertEq(address(nfgho.aavePool()), address(poolMock));
         assertEq(nfgho.supportedCollaterals(0), address(bayc));
         assertTrue(nfgho.isCollateralSupported(address(bayc)));
         assertEq(nfgho.priceFeeds(address(bayc)), address(mockV3AggregatorBayc));
@@ -82,7 +89,9 @@ contract NFGhoTest is Test, Constants {
         _supportedCollaterals[1] = address(bayc);
         _priceFeeds[0] = address(mockV3AggregatorBayc);
         vm.expectRevert(NFGho.InvalidCollateralsAndPriceFeeds.selector);
-        new NFGho(ghoToken, gsm, ghoTreasury, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
+        new NFGho(
+            ghoToken, gsm, poolMock, ghoTreasury, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd)
+        );
     }
 
     /* depositCollateral() */
@@ -199,6 +208,47 @@ contract NFGhoTest is Test, Constants {
         assertEq(ghoToken.balanceOf(address(nfgho)), 0);
         assertEq(usdc.balanceOf(alice), 100e6);
         assertEq(usdc.balanceOf(address(nfgho)), 0);
+
+        vm.stopPrank();
+    }
+
+    /* mintGhoSwapUsdcSupply() */
+    function test_mintGhoSwapUsdcSupply() public {
+        vm.startPrank(alice);
+
+        // initial balances
+        assertEq(nfgho.ghoMintedOf(alice), 0);
+        assertEq(ghoToken.balanceOf(alice), 0);
+
+        // deposit collateral
+        uint256 collateralTokenId = 1;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+
+        vm.stopPrank();
+
+        // Supply assets to the GSM first
+        vm.prank(FAUCET);
+        usdc.mint(bob, 200e6);
+        vm.startPrank(bob);
+        usdc.approve(address(gsm), 200e6);
+        gsm.sellAsset(200e6, bob);
+        vm.stopPrank();
+
+        // mint gho, get USDC, supply to Aave
+        vm.startPrank(alice);
+        uint256 ghoAmount = 100e18;
+        vm.expectEmit(true, true, true, true);
+        emit GhoMintedSwappedToUsdcSupplied(alice, ghoAmount, 100e6);
+        nfgho.mintGhoSwapUsdcSupply(ghoAmount);
+
+        // final balances
+        assertEq(nfgho.ghoMintedOf(alice), ghoAmount);
+        assertEq(ghoToken.balanceOf(alice), 0);
+        assertEq(ghoToken.balanceOf(address(nfgho)), 0);
+        assertEq(usdc.balanceOf(alice), 0);
+        assertEq(usdc.balanceOf(address(nfgho)), 0);
+        assertEq(usdcATokenMock.balanceOf(address(alice)), 100e6);
 
         vm.stopPrank();
     }
