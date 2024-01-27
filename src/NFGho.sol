@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.20;
+pragma solidity ^0.8.0;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
@@ -59,7 +59,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     ///                    Each tokenId of a collection is considered fungible for now,
     //                     since we're using floor price to calculate value.
     struct Collateral {
-        mapping(uint256 tokenId => bool hasDeposited) hasDepositedTokenId;
+        mapping(uint256 => bool) hasDepositedTokenId;
         uint256 tokensCount;
     }
 
@@ -85,19 +85,19 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     address[] public supportedCollaterals;
 
     /// @notice Mapping of supported collaterals for easy lookup
-    mapping(address collateral => bool isSupported) public isCollateralSupported;
+    mapping(address => bool) public isCollateralSupported;
 
     /// @notice Mapping of price feeds for supported collaterals
-    mapping(address collateral => address priceFeed) public priceFeeds;
+    mapping(address => address) public priceFeeds;
 
     /// @notice Address of ETH/USD price feed
     address public ethUsdPriceFeed; // TODO: can be stored in priceFeeds mapping
 
     /// @notice Mapping of user's collateral NFTs
-    mapping(address user => mapping(address collateralNFT => Collateral collateral)) internal collateralNFTs;
+    mapping(address => mapping(address => Collateral)) internal collateralNFTs;
 
     /// @notice Mapping of user's minted Gho / debt
-    mapping(address user => uint256 ghoMinted) internal ghoMinted;
+    mapping(address => uint256) internal ghoMinted;
 
     /// @notice Reverts if used collateral is not supported
     modifier onlySupportedCollateral(address _collateral) {

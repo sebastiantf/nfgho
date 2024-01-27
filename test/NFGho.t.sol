@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.20;
+pragma solidity ^0.8.0;
 
 import {Test, console} from "forge-std/Test.sol";
 import {NFGho} from "../src/NFGho.sol";
 import {ERC721Mock} from "./mocks/ERC721Mock.sol";
 import {DeployGHO} from "../script/DeployGHO.s.sol";
 import {GhoToken} from "gho-core/src/contracts/gho/GhoToken.sol";
+import {Gsm} from "gho-core/src/contracts/facilitators/gsm/Gsm.sol";
 import {IGhoToken} from "gho-core/src/contracts/gho/interfaces/IGhoToken.sol";
 import {MockV3Aggregator} from "./mocks/MockV3Aggregator.sol";
 
@@ -19,6 +20,7 @@ contract NFGhoTest is Test {
     NFGho public nfgho;
     ERC721Mock public bayc = new ERC721Mock();
     GhoToken public ghoToken;
+    Gsm public gsm;
     MockV3Aggregator public mockV3AggregatorBayc = new MockV3Aggregator();
     MockV3Aggregator public mockV3AggregatorEthUsd = new MockV3Aggregator();
 
@@ -29,7 +31,7 @@ contract NFGhoTest is Test {
 
     function setUp() public {
         DeployGHO deployer = new DeployGHO();
-        (ghoToken) = deployer.run();
+        (ghoToken, gsm) = deployer.run();
 
         address[] memory _supportedCollaterals = new address[](1);
         address[] memory _priceFeeds = new address[](1);
