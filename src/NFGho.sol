@@ -143,8 +143,9 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
             }
 
             /// @dev these slots are not packed
-            sstore(ghoToken.slot, _ghoToken)
-            sstore(ghoTreasury.slot, _ghoTreasury)
+            /// @dev clean upper bits of address
+            sstore(ghoToken.slot, and(0xffffffffffffffffffffffffffffffffffffffff, _ghoToken))
+            sstore(ghoTreasury.slot, and(0xffffffffffffffffffffffffffffffffffffffff, _ghoTreasury))
         }
         supportedCollaterals = _supportedCollaterals;
         ethUsdPriceFeed = _ethUsdPriceFeed;
