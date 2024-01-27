@@ -188,7 +188,17 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
             }
         }
         ghoToken.mint(msg.sender, _amount);
-        emit GhoMinted(msg.sender, _amount);
+        assembly {
+            // store _amount at free memory pointer
+            let memPtr := mload(64)
+            mstore(memPtr, _amount)
+            log2(
+                memPtr,
+                32, // amount
+                0x3e5bed99a1f2a825c552ad1f9e09f576e8621b9cf02e69a5f4bb88b7d457c4f3, // GhoMinted(address,uint256)
+                caller() // user
+            )
+        }
     }
 
     /// @notice Redeem collateral NFT token
