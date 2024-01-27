@@ -40,7 +40,8 @@ contract NFGhoTest is Test {
         mockV3AggregatorBayc.setPrice(25 ether); // set floor price of 25 ETH
         mockV3AggregatorEthUsd.setPrice(2000e8); // set ETH/USD price of 2000 USD in 8 decimals
 
-        nfgho = new NFGho(ghoToken, ghoTreasury, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
+        nfgho =
+            new NFGho(ghoToken, gsm, ghoTreasury, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
 
         vm.startPrank(alice);
         ghoToken.addFacilitator(address(nfgho), "NFGho", 100_000 ether);
@@ -52,6 +53,7 @@ contract NFGhoTest is Test {
 
     function test_initialState() public {
         assertEq(address(nfgho.ghoToken()), address(ghoToken));
+        assertEq(address(nfgho.gsm()), address(gsm));
         assertEq(nfgho.supportedCollaterals(0), address(bayc));
         assertTrue(nfgho.isCollateralSupported(address(bayc)));
         assertEq(nfgho.priceFeeds(address(bayc)), address(mockV3AggregatorBayc));
@@ -75,7 +77,7 @@ contract NFGhoTest is Test {
         _supportedCollaterals[1] = address(bayc);
         _priceFeeds[0] = address(mockV3AggregatorBayc);
         vm.expectRevert(NFGho.InvalidCollateralsAndPriceFeeds.selector);
-        new NFGho(ghoToken, ghoTreasury, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
+        new NFGho(ghoToken, gsm, ghoTreasury, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
     }
 
     /* depositCollateral() */

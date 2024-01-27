@@ -5,6 +5,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {GhoToken} from "gho-core/src/contracts/gho/GhoToken.sol";
+import {Gsm} from "gho-core/src/contracts/facilitators/gsm/Gsm.sol";
 import {IGhoFacilitator} from "gho-core/src/contracts/gho/interfaces/IGhoFacilitator.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
@@ -78,6 +79,9 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @notice Gho token
     GhoToken public ghoToken;
 
+    /// @notice Gsm
+    Gsm public gsm;
+
     /// @notice Address of the treasury
     address public ghoTreasury;
 
@@ -130,6 +134,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @param _ethUsdPriceFeed Address of ETH/USD price feed
     constructor(
         GhoToken _ghoToken,
+        Gsm _gsm,
         address _ghoTreasury,
         address[] memory _supportedCollaterals,
         address[] memory _priceFeeds,
@@ -145,6 +150,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
             /// @dev these slots are not packed
             /// @dev clean upper bits of address
             sstore(ghoToken.slot, shr(96, shl(96, _ghoToken)))
+            sstore(gsm.slot, shr(96, shl(96, _gsm)))
             sstore(ghoTreasury.slot, shr(96, shl(96, _ghoTreasury)))
             sstore(ethUsdPriceFeed.slot, shr(96, shl(96, _ethUsdPriceFeed)))
         }
