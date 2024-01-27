@@ -54,8 +54,8 @@ contract NFGhoTest is Test {
         assertTrue(nfgho.isCollateralSupported(address(bayc)));
         assertEq(nfgho.priceFeeds(address(bayc)), address(mockV3AggregatorBayc));
         assertEq(nfgho.ethUsdPriceFeed(), address(mockV3AggregatorEthUsd));
-        assertEq(nfgho.LIQUIDATION_THRESHOLD(), 80);
-        assertEq(nfgho.LIQUIDATION_PRECISION(), 100);
+        assertEq(nfgho.LIQUIDATION_THRESHOLD(), 0.8e4);
+        assertEq(nfgho.PERCENTAGE_FACTOR(), 1e4);
 
         (, int256 nftFloorPrice,,,) = mockV3AggregatorBayc.latestRoundData();
         assertEq(nftFloorPrice, 25 ether);
