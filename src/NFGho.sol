@@ -267,7 +267,6 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
         collateralNFTs[_user][_collateral].tokensCount--;
         // transfer NFT to liquidator
         IERC721(_collateral).safeTransferFrom(address(this), msg.sender, _tokenId);
-        emit CollateralRedeemed(_user, _collateral, _tokenId);
 
         // burn Gho equivalent to nft floor value from liquidator
         ghoMinted[_user] -= _ghoAmount; // reduce debt from user
@@ -275,7 +274,6 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
         // burn Gho from liquidator
         ghoToken.transferFrom(msg.sender, address(this), _ghoAmount + _fee);
         ghoToken.burn(_ghoAmount);
-        emit GhoBurned(_user, _ghoAmount);
 
         // check health factor improved
         uint256 newHealthFactor = healthFactor(_user);
