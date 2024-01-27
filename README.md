@@ -10,6 +10,16 @@ NFGho is an evolution of a previous project of mine called [YieldNFT](https://bi
 
 NFGho will use Chainlink's [NFT Floor Price Feeds](https://docs.chain.link/data-feeds/nft-floor-price) to determine the value of the NFTs being used as collateral.
 
+### How it works
+
+1. User deposits NFTs into the NFGho contract
+2. NFGho contract mints GHO tokens as debt for the user against the NFTs
+    1. Chainlink's NFT Floor Price Feeds are used to determine the value of the NFTs and thus the health factor of the position
+3. User can use the GHO tokens to mint USDC/USDT via the GSM (WIP)
+4. User can burn GHO tokens to repay the debt and withdraw their NFTs
+5. User can redeem their NFTs by paying back the debt
+6. User's NFTs can be liquidated if the health factor falls below 1.0
+
 ### Potential Challenges
 
 - Liquidation of NFTs might require liquidating the entire position, by burning the total amount of debt and liquidator will receive the entire NFT. This is because NFTs are indivisible. We could look into fractionalizing NFTs to solve this problem. NFTfi, NFTX, Fractional, etc. can be explored
