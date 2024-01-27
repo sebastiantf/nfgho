@@ -28,9 +28,3 @@ $ forge build
 ```shell
 $ forge test
 ```
-
-### Deploy
-
-```shell
-$ forge script script/NFGho.s.sol:NFGhoScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
