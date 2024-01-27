@@ -284,7 +284,19 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
             }
         }
 
-        emit Liquidated(_user, _collateral, _tokenId, _ghoAmount);
+        assembly {
+            // store _ghoAmount at free memory pointer
+            let memPtr := mload(64)
+            mstore(memPtr, _ghoAmount)
+            log4(
+                memPtr,
+                32,
+                0x1f0c6615429d1cdae0dfa233abf91d3b31cdbdd82c8081389832a61e1072f1ea, // Liquidated(address,address,uint256,uint256)
+                shr(96, shl(96, _user)), // user
+                shr(96, shl(96, _collateral)), // collateral
+                _tokenId // tokenId
+            )
+        }
     }
 
     /// @inheritdoc IGhoFacilitator
