@@ -27,8 +27,11 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
 
     // Liquidation threshold is 80% = 8000 bps
     // If loan value raises above 80% of collateral value, the loan can be liquidated
-    uint256 public constant LIQUIDATION_THRESHOLD = 0.8e4;
-    uint256 public constant PERCENTAGE_FACTOR = 1e4;
+    uint256 public constant LIQUIDATION_THRESHOLD = 0.8e4; // 8000 bps
+    uint256 public constant PERCENTAGE_FACTOR = 1e4; // 10000
+
+    // Treasury fee is 0.01% = 1 bps
+    uint256 public fee = 0.0001e4;
 
     GhoToken public ghoToken;
     address public ghoTreasury;
@@ -100,7 +103,8 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
 
     function burnGho(uint256 _amount) external {
         ghoMinted[msg.sender] -= _amount;
-        ghoToken.transferFrom(msg.sender, address(this), _amount);
+        uint256 _fee = (_amount * fee) / PERCENTAGE_FACTOR;
+        ghoToken.transferFrom(msg.sender, address(this), _amount + _fee);
         ghoToken.burn(_amount);
         emit GhoBurned(msg.sender, _amount);
     }

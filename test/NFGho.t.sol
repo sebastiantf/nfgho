@@ -59,6 +59,7 @@ contract NFGhoTest is Test {
         assertEq(nfgho.PERCENTAGE_FACTOR(), 1e4);
         assertEq(nfgho.ghoTreasury(), ghoTreasury);
         assertEq(nfgho.owner(), address(this));
+        assertEq(nfgho.fee(), 0.0001e4);
 
         (, int256 nftFloorPrice,,,) = mockV3AggregatorBayc.latestRoundData();
         assertEq(nftFloorPrice, 25 ether);
@@ -298,14 +299,25 @@ contract NFGhoTest is Test {
 
         // burn GHO
         uint256 ghoAmount = 20_000 ether;
-        ghoToken.approve(address(nfgho), ghoAmount);
+        uint256 _fee = (ghoAmount * nfgho.fee()) / nfgho.PERCENTAGE_FACTOR(); // 20,000 * 0.01% = 2
+        assertEq(_fee, 2e18);
+        uint256 burnAmountWithFee = ghoAmount + _fee; // 20,000 + 2 = 20,002
+        assertEq(burnAmountWithFee, 20_002e18);
+        ghoToken.approve(address(nfgho), burnAmountWithFee);
         vm.expectEmit(true, true, true, true);
         emit GhoBurned(alice, ghoAmount);
         nfgho.burnGho(ghoAmount);
 
         // final balances
         assertEq(nfgho.ghoMintedOf(alice), 20_000e18);
-        assertEq(ghoToken.balanceOf(alice), 20_000e18);
+        assertEq(ghoToken.balanceOf(alice), 20_000e18 - _fee);
+        assertEq(ghoToken.balanceOf(address(nfgho)), 2e18);
+
+        // distribute fee to treasury
+        assertEq(ghoToken.balanceOf(ghoTreasury), 0);
+        nfgho.distributeFeesToTreasury();
+        assertEq(ghoToken.balanceOf(ghoTreasury), 2e18);
+        assertEq(ghoToken.balanceOf(address(nfgho)), 0);
 
         // health factor
         // (((totalCollateralValueInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION) * 1e18) / totalGhoMinted;
