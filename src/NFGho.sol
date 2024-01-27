@@ -135,8 +135,9 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
         address[] memory _priceFeeds,
         address _ethUsdPriceFeed
     ) {
-        if (_supportedCollaterals.length != _priceFeeds.length) {
-            assembly {
+        assembly {
+            /// @dev memposition of arrays will have length of array
+            if iszero(eq(mload(_supportedCollaterals), mload(_priceFeeds))) {
                 mstore(0x00, 0x2f2bb148) // revert InvalidCollateralsAndPriceFeeds();
                 revert(0x1c, 0x04)
             }
