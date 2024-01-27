@@ -1,5 +1,5 @@
 NFGhoTest:test_burnGho() (gas: 287014)
-NFGhoTest:test_constructorRevertsIfCollateralAndPriceFeedLengthMismatch() (gas: 96321)
+NFGhoTest:test_constructorRevertsIfCollateralAndPriceFeedLengthMismatch() (gas: 96314)
 NFGhoTest:test_depositCollateral() (gas: 121508)
 NFGhoTest:test_depositCollateralRevertsIfUnsupported() (gas: 1081325)
 NFGhoTest:test_ethUsd() (gas: 20726)
