@@ -142,6 +142,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
                 revert(0x1c, 0x04)
             }
 
+            /// @dev these slots are not packed
             sstore(ghoToken.slot, _ghoToken)
             sstore(ghoTreasury.slot, _ghoTreasury)
         }
