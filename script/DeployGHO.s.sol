@@ -16,7 +16,7 @@ contract DeployGHO is Script, Constants {
 
     address alice = makeAddr("alice");
 
-    function run() external returns (GhoToken, Gsm) {
+    function run() external returns (GhoToken, Gsm, TestnetERC20) {
         // Deploy GhoToken
         GHO_TOKEN = new GhoToken(alice);
         vm.startPrank(alice);
@@ -31,7 +31,13 @@ contract DeployGHO is Script, Constants {
         AdminUpgradeabilityProxy gsmProxy = new AdminUpgradeabilityProxy(address(gsm), SHORT_EXECUTOR, "");
         GHO_GSM = Gsm(address(gsmProxy));
         GHO_GSM.initialize(address(this), TREASURY, DEFAULT_GSM_USDC_EXPOSURE);
+        // zero fee
+        GHO_GSM.updateFeeStrategy(address(0));
 
-        return (GHO_TOKEN, GHO_GSM);
+        // Add Gsm as a facilitator
+        vm.prank(alice);
+        GHO_TOKEN.addFacilitator(address(GHO_GSM), "Gsm", 100_000 ether);
+
+        return (GHO_TOKEN, GHO_GSM, USDC_TOKEN);
     }
 }

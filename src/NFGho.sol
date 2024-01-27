@@ -42,6 +42,12 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @param amount Amount of gho minted
     event GhoMinted(address indexed user, uint256 amount);
 
+    /// @notice Emitted gho debt is minted/taken and swapped for USDC
+    /// @param user Address of the user
+    /// @param ghoAmount Amount of gho minted
+    /// @param usdcAmount Amount of usdc received
+    event GhoMintedSwappedToUsdc(address indexed user, uint256 ghoAmount, uint256 usdcAmount);
+
     /// @notice Emitted gho debt is burned/repaid
     /// @param user Address of the user
     /// @param amount Amount of gho burned
@@ -185,7 +191,7 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
     /// @notice Mint Gho debt
     /// @dev Updates user's Gho debt. Reverts if user's health factor falls below 1 when taking new debt
     /// @param _amount Amount of Gho to mint
-    function mintGho(uint256 _amount) external {
+    function mintGho(uint256 _amount) public {
         ghoMinted[msg.sender] += _amount;
         if (healthFactor(msg.sender) < 1e18) {
             assembly {
@@ -205,6 +211,25 @@ contract NFGho is IGhoFacilitator, Ownable, ERC721Holder {
                 caller() // user
             )
         }
+    }
+
+    /// @notice Mint Gho debt & swap for USDC
+    /// @dev Updates user's Gho debt. Reverts if user's health factor falls below 1 when taking new debt
+    /// @param _amount Amount of Gho to mint
+    function mintGhoSwapUsdc(uint256 _amount) external {
+        ghoMinted[msg.sender] += _amount;
+        if (healthFactor(msg.sender) < 1e18) {
+            assembly {
+                mstore(0x00, 0x034c7e5e) // revert InsufficientHealthFactor();
+                revert(0x1c, 0x04)
+            }
+        }
+        // mint to this contract to swap after
+        ghoToken.mint(address(this), _amount);
+        ghoToken.approve(address(gsm), _amount);
+        (uint256 assetAmount,,,) = gsm.getAssetAmountForBuyAsset(_amount);
+        gsm.buyAsset(assetAmount, msg.sender);
+        emit GhoMintedSwappedToUsdc(msg.sender, _amount, assetAmount);
     }
 
     /// @notice Redeem collateral NFT token
