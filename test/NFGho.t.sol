@@ -400,6 +400,30 @@ contract NFGhoTest is Test {
         assertEq(ghoToken.balanceOf(address(nfgho)), 0);
     }
 
+    function test_liquidateRevertsIfSufficientHealthFactor() public {
+        vm.startPrank(alice);
+
+        // deposit collateral
+        uint256 collateralTokenId = 1;
+        bayc.approve(address(nfgho), collateralTokenId);
+        nfgho.depositCollateral(address(bayc), collateralTokenId);
+        assertEq(nfgho.collateralDepositedCount(alice, address(bayc)), 1);
+        // mint 80% of collateral value in GHO: 50,000 USD * 80% = 40,000 USD
+        nfgho.mintGho(40_000e18);
+        vm.stopPrank();
+
+        // health factor = 50_000 * 80% / 40_000 = 1
+        assertEq(nfgho.healthFactor(alice), 1e18);
+
+        vm.prank(ghoGod);
+        ghoToken.mint(liquidator, 1 ether);
+        vm.stopPrank();
+        vm.startPrank(liquidator);
+        ghoToken.approve(address(nfgho), 1 ether);
+        vm.expectRevert(NFGho.SufficientHealthFactor.selector);
+        nfgho.liquidate(alice, address(bayc), collateralTokenId, 1 ether);
+    }
+
     function test_liquidateRevertsIfInsufficientHealthFactor() public {
         vm.startPrank(alice);
 
