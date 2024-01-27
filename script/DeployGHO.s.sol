@@ -12,6 +12,9 @@ import {Constants} from "gho-core/src/test/helpers/Constants.sol";
 import {PoolMock, ATokenMock} from "../test/mocks/PoolMock.sol";
 import {IPool} from "@aave/core-v3/contracts/protocol/pool/Pool.sol";
 
+/// @title DeployGHO
+/// @notice Deploys GHO Token, GHO GSM, Aave PoolMock, USDC's ATokenMock
+/// @dev Original contracts for GHO GSM are used. But mock contracts are used for Aave Pool and aToken
 contract DeployGHO is Script, Constants {
     GhoToken GHO_TOKEN;
     Gsm GHO_GSM;
