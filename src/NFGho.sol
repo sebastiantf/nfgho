@@ -2,11 +2,13 @@
 pragma solidity 0.8.20;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {GhoToken} from "gho-core/src/contracts/gho/GhoToken.sol";
+import {IGhoFacilitator} from "gho-core/src/contracts/gho/interfaces/IGhoFacilitator.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-contract NFGho is ERC721Holder {
+contract NFGho is ERC721Holder, IGhoFacilitator, Ownable {
     error UnsupportedCollateral();
     error InsufficientHealthFactor();
     error SufficientHealthFactor();
@@ -29,6 +31,7 @@ contract NFGho is ERC721Holder {
     uint256 public constant PERCENTAGE_FACTOR = 1e4;
 
     GhoToken public ghoToken;
+    address public ghoTreasury;
     address[] public supportedCollaterals;
     mapping(address collateral => bool isSupported) public isCollateralSupported;
     mapping(address collateral => address priceFeed) public priceFeeds;
@@ -53,11 +56,13 @@ contract NFGho is ERC721Holder {
 
     constructor(
         GhoToken _ghoToken,
+        address _ghoTreasury,
         address[] memory _supportedCollaterals,
         address[] memory _priceFeeds,
         address _ethUsdPriceFeed
     ) {
         ghoToken = _ghoToken;
+        ghoTreasury = _ghoTreasury;
         supportedCollaterals = _supportedCollaterals;
         ethUsdPriceFeed = _ethUsdPriceFeed;
 
@@ -124,6 +129,25 @@ contract NFGho is ERC721Holder {
         if (newHealthFactor <= currentHealthFactor) revert InsufficientHealthFactor();
 
         emit Liquidated(_user, _collateral, _tokenId, _burnAmount);
+    }
+
+    /// @inheritdoc IGhoFacilitator
+    function distributeFeesToTreasury() external override {
+        uint256 balance = ghoToken.balanceOf(address(this));
+        ghoToken.transfer(ghoTreasury, balance);
+        emit FeesDistributedToTreasury(ghoTreasury, address(ghoToken), balance);
+    }
+
+    /// @inheritdoc IGhoFacilitator
+    function updateGhoTreasury(address newGhoTreasury) external override onlyOwner {
+        address oldGhoTreasury = ghoTreasury;
+        ghoTreasury = newGhoTreasury;
+        emit GhoTreasuryUpdated(oldGhoTreasury, newGhoTreasury);
+    }
+
+    /// @inheritdoc IGhoFacilitator
+    function getGhoTreasury() external view override returns (address) {
+        return ghoTreasury;
     }
 
     function healthFactor(address user) public view returns (uint256) {

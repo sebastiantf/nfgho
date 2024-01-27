@@ -24,6 +24,7 @@ contract NFGhoTest is Test {
     address alice = makeAddr("alice");
     address liquidator = makeAddr("liquidator");
     address ghoGod = makeAddr("ghoGod"); // GHO facilitator to mint GHO for testing
+    address ghoTreasury = makeAddr("ghoTreasury");
 
     function setUp() public {
         DeployGHO deployer = new DeployGHO();
@@ -36,7 +37,7 @@ contract NFGhoTest is Test {
         mockV3AggregatorBayc.setPrice(25 ether); // set floor price of 25 ETH
         mockV3AggregatorEthUsd.setPrice(2000e8); // set ETH/USD price of 2000 USD in 8 decimals
 
-        nfgho = new NFGho(ghoToken, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
+        nfgho = new NFGho(ghoToken, ghoTreasury, _supportedCollaterals, _priceFeeds, address(mockV3AggregatorEthUsd));
 
         vm.startPrank(alice);
         IGhoToken.Facilitator memory nfghoFacilitator = IGhoToken.Facilitator(100_000 ether, 0, "NFGho");
@@ -56,6 +57,8 @@ contract NFGhoTest is Test {
         assertEq(nfgho.ethUsdPriceFeed(), address(mockV3AggregatorEthUsd));
         assertEq(nfgho.LIQUIDATION_THRESHOLD(), 0.8e4);
         assertEq(nfgho.PERCENTAGE_FACTOR(), 1e4);
+        assertEq(nfgho.ghoTreasury(), ghoTreasury);
+        assertEq(nfgho.owner(), address(this));
 
         (, int256 nftFloorPrice,,,) = mockV3AggregatorBayc.latestRoundData();
         assertEq(nftFloorPrice, 25 ether);
