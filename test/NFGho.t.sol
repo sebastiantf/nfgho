@@ -348,6 +348,11 @@ contract NFGhoTest is Test {
         nfgho.liquidate(alice, address(bayc), collateralTokenId, liquidateAmount);
         vm.stopPrank();
 
+        // alice: 50000 USD collateral, 40000 USD debt, 40000 GHO balance -> 0 collateral, 0 debt, 40000 GHO balance
+        // loss: 45000 - 40000 = 5000 USD
+        // liquidator: 0 USD collateral, 0 USD debt, 40000 GHO balance -> 45000 collateral, 0 debt, 0 GHO balance
+        // profit: 45000 - 4000 = 5000 USD
+
         // final balances
         newHealthFactor = nfgho.healthFactor(alice);
         assertEq(newHealthFactor, type(uint256).max);
@@ -413,7 +418,7 @@ contract NFGhoTest is Test {
         bayc.approve(address(nfgho), collateralTokenId);
         nfgho.depositCollateral(address(bayc), collateralTokenId);
         assertEq(nfgho.collateralDepositedCount(alice, address(bayc)), 2);
-        // mint 80% of collateral value in GHO: 100,000 USD * 80% = 80,000 USD
+        // mint 80% of collateral value in GHO: 100,000 USD * 80% = 80,000 USD - 40,000 = 40,000
         nfgho.mintGho(40_000e18);
         vm.stopPrank();
 
@@ -458,7 +463,7 @@ contract NFGhoTest is Test {
         assertEq(newHealthFactor, 0.888888888888888888e18);
 
         // liquidate next token
-        // repay 36_000, take 45_000 collateral
+        // repay 36_000, take 40_000 collateral
         // debt = 0, collateral = 0; hf = max
         liquidateAmount = 36_000e18;
         // mint 36_000 GHO for liquidator
@@ -469,6 +474,11 @@ contract NFGhoTest is Test {
         ghoToken.approve(address(nfgho), liquidateAmount);
         nfgho.liquidate(alice, address(bayc), 2, liquidateAmount);
         vm.stopPrank();
+
+        // alice: 100,000 USD collateral, 40000 USD debt, 40000 GHO balance -> 0 collateral, 0 debt, 40000 GHO balance
+        // loss: (40000 + 45000) - 80000 = 5,000 USD
+        // liquidator: 0 USD collateral, 0 USD debt, 44000 + 36000 = 80,000 GHO balance -> 45000+40000 = 85,000 collateral, 0 debt, 0 GHO balance
+        // profit: 85,000 - 80,000 = 5,000 USD
 
         newHealthFactor = nfgho.healthFactor(alice);
         assertEq(newHealthFactor, type(uint256).max);
