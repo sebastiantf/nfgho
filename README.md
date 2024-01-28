@@ -42,6 +42,7 @@ $ forge test
 
 ### TODO
 
+- [ ] Check and handle reentrancy
 - [ ] More tests for liquidation & health factor
 - [ ] Refactors to avoid code duplication
 - [ ] Generalize handling precision & decimals
